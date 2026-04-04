@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 ThemeData gameTheme() => ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.deepPurple,
-        brightness: Brightness.dark,
+        seedColor: const Color(0xFF2196F3),
+        brightness: Brightness.light,
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(

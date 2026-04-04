@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => GameProvider(),
       child: MaterialApp(
-        title: 'Monster Card Battle',
+        title: 'チートモンスター',
         theme: gameTheme(),
         debugShowCheckedModeBanner: false,
         initialRoute: '/',

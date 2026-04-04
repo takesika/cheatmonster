@@ -35,7 +35,6 @@ class _SummonResultScreenState extends State<SummonResultScreen>
       ),
     );
 
-    // Start card reveal after a short delay (summoning effect)
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() => _showCard = true);
@@ -58,7 +57,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D001A), Color(0xFF1A0033)],
+            colors: [Colors.white, Color(0xFFE3F2FD)],
           ),
         ),
         child: SafeArea(
@@ -71,9 +70,9 @@ class _SummonResultScreenState extends State<SummonResultScreen>
 
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (!_showCard) ...[
-                    // Summoning effect
                     const SizedBox(height: 80),
                     _buildSummoningEffect(),
                   ] else ...[
@@ -82,7 +81,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                       '召喚成功！',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: Colors.deepPurpleAccent,
+                                color: const Color(0xFFFFB300),
                               ),
                     ),
                     const SizedBox(height: 24),
@@ -103,20 +102,48 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                     ),
                     const SizedBox(height: 32),
                     if (!game.isGeneratingImage)
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/battle');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple,
-                          foregroundColor: Colors.white,
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  const Color(0xFF2196F3).withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Text('バトルへ！'),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(30),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/battle');
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 48, vertical: 16),
+                              child: Text(
+                                'バトルへ！',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       )
                     else
                       const Text(
                         '画像を生成中...',
-                        style: TextStyle(color: Colors.white38),
+                        style: TextStyle(color: Color(0xFF999999)),
                       ),
                   ],
                 ],
@@ -146,7 +173,8 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.deepPurpleAccent.withOpacity(0.6 * value),
+                        color:
+                            const Color(0xFFFFB300).withOpacity(0.6 * value),
                         blurRadius: 40 * value,
                         spreadRadius: 20 * value,
                       ),
@@ -155,7 +183,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                   child: const Icon(
                     Icons.auto_awesome,
                     size: 64,
-                    color: Colors.deepPurpleAccent,
+                    color: Color(0xFFFFB300),
                   ),
                 ),
               ),
@@ -166,7 +194,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
         const Text(
           '召喚中...',
           style: TextStyle(
-            color: Colors.deepPurpleAccent,
+            color: Color(0xFF2196F3),
             fontSize: 18,
             letterSpacing: 4,
           ),

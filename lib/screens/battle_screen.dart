@@ -31,7 +31,6 @@ class _BattleScreenState extends State<BattleScreen>
       CurvedAnimation(parent: _revealController, curve: Curves.easeInOut),
     );
 
-    // CPU card flip reveal after delay
     Future.delayed(const Duration(milliseconds: 1000), () {
       if (mounted) {
         _revealController.forward().then((_) {
@@ -55,7 +54,7 @@ class _BattleScreenState extends State<BattleScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D001A), Color(0xFF1A0033)],
+            colors: [Colors.white, Color(0xFFE3F2FD)],
           ),
         ),
         child: SafeArea(
@@ -65,7 +64,6 @@ class _BattleScreenState extends State<BattleScreen>
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Update phase when battle result arrives
               if (game.battleResult != null && _phase != BattlePhase.result) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) setState(() => _phase = BattlePhase.result);
@@ -87,21 +85,20 @@ class _BattleScreenState extends State<BattleScreen>
                       style: Theme.of(context)
                           .textTheme
                           .headlineSmall
-                          ?.copyWith(color: Colors.white),
+                          ?.copyWith(color: const Color(0xFF333333)),
                     ),
                     const SizedBox(height: 8),
                     const Text('VS',
                         style: TextStyle(
-                            fontSize: 24, color: Colors.deepPurpleAccent)),
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFFB300))),
                     const SizedBox(height: 16),
-                    // Cards
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // Player card
                           MonsterCard(monster: game.playerMonster!),
-                          // CPU card with flip animation
                           AnimatedBuilder(
                             animation: _flipAnim,
                             builder: (context, _) {
@@ -126,7 +123,6 @@ class _BattleScreenState extends State<BattleScreen>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Bottom area
                     _buildBottomArea(context, game),
                     const SizedBox(height: 16),
                   ],
@@ -157,24 +153,47 @@ class _BattleScreenState extends State<BattleScreen>
       case BattlePhase.reveal:
         return const SizedBox(height: 48);
       case BattlePhase.ready:
-        return ElevatedButton(
-          onPressed: () {
-            game.startBattle();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red.shade700,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE53935), Color(0xFFFF5252)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.red.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: const Text('戦う！', style: TextStyle(fontSize: 20)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: () => game.startBattle(),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                child: Text(
+                  '戦う！',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
+                ),
+              ),
+            ),
+          ),
         );
       case BattlePhase.battling:
         return const Column(
           children: [
-            CircularProgressIndicator(color: Colors.deepPurpleAccent),
+            CircularProgressIndicator(color: Color(0xFF2196F3)),
             SizedBox(height: 12),
             Text('LLMが戦闘を審判中...',
-                style: TextStyle(color: Colors.white54)),
+                style: TextStyle(color: Color(0xFF666666))),
           ],
         );
       case BattlePhase.result:
@@ -190,9 +209,9 @@ class _BattleScreenState extends State<BattleScreen>
       BattleOutcome.draw => 'DRAW',
     };
     final outcomeColor = switch (result.outcome) {
-      BattleOutcome.win => Colors.amber,
+      BattleOutcome.win => const Color(0xFFFFB300),
       BattleOutcome.lose => Colors.blueGrey,
-      BattleOutcome.draw => Colors.white70,
+      BattleOutcome.draw => const Color(0xFF888888),
     };
 
     return Column(
@@ -211,24 +230,44 @@ class _BattleScreenState extends State<BattleScreen>
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.deepPurple.withOpacity(0.2),
+            color: const Color(0xFF2196F3).withOpacity(0.1),
           ),
           child: Text(
             result.narration,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: const TextStyle(color: Color(0xFF555555), fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ),
         const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepPurple,
-            foregroundColor: Colors.white,
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+            ),
           ),
-          child: const Text('もう一度'),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(30),
+              onTap: () {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/', (route) => false);
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                child: Text(
+                  'もう一度',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

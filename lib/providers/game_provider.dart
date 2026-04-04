@@ -33,17 +33,14 @@ class GameProvider extends ChangeNotifier {
       specialAbility: specialAbility,
     );
 
-    // CPUモンスターも同時に生成開始
-    cpuMonster = _cpuService.generate();
-
     isGeneratingImage = true;
     isGeneratingCpuImage = true;
     notifyListeners();
 
-    // プレイヤーとCPUの画像を並列生成
+    // プレイヤー画像生成、CPU名前+能力+画像生成を全て並列
     await Future.wait([
       _generatePlayerImage(name, specialAbility),
-      _generateCpuImage(),
+      _generateCpuMonsterAndImage(),
     ]);
   }
 
@@ -62,8 +59,13 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _generateCpuImage() async {
+  Future<void> _generateCpuMonsterAndImage() async {
     try {
+      // まずGeminiで名前と能力を生成
+      cpuMonster = await _cpuService.generate();
+      notifyListeners();
+
+      // 次に画像生成
       final imageBytes = await _imageService.generateMonsterImage(
           cpuMonster!.name, cpuMonster!.specialAbility);
       if (imageBytes != null) {

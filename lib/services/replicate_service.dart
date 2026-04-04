@@ -4,13 +4,16 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../config/env.dart';
+import 'input_sanitizer.dart';
 
 class ImageGenerationService {
   Future<Uint8List?> generateMonsterImage(
       String name, String specialAbility) async {
+    final safeName = InputSanitizer.sanitize(name);
+    final safeAbility = InputSanitizer.sanitize(specialAbility);
     final prompt =
-        'モンスターカードゲームのイラスト。ダークファンタジー風のクリーチャー「$name」。'
-        '能力: $specialAbility。迫力のあるカードゲーム用ポートレート、高品質イラスト。';
+        '遊戯王風のモンスターカードイラスト。「$safeName」という名のクリーチャー。'
+        '能力: $safeAbility。遊戯王カード風の迫力あるイラスト、ファンタジー調、カードゲーム用ポートレート。';
 
     final url = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${Env.geminiApiKey}',

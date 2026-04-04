@@ -14,7 +14,7 @@ class HomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D001A), Color(0xFF1A0033)],
+            colors: [Colors.white, Color(0xFFE3F2FD)],
           ),
         ),
         child: SafeArea(
@@ -23,38 +23,65 @@ class HomeScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
-                  Icons.auto_awesome,
+                  Icons.warning,
                   size: 80,
-                  color: Colors.deepPurpleAccent,
+                  color: Color(0xFFFFB300),
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'MONSTER\nCARD BATTLE',
+                  'チート\nモンスター',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: Colors.white,
-                        fontSize: 36,
+                        color: const Color(0xFF333333),
+                        fontSize: 42,
                         height: 1.2,
                       ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  '特殊能力で運命を変えろ',
+                  'チートスキルで最強モンスターを作れ！',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.white54,
+                        color: const Color(0xFF666666),
                       ),
                 ),
                 const SizedBox(height: 48),
-                ElevatedButton(
-                  onPressed: () {
-                    context.read<GameProvider>().reset();
-                    Navigator.pushNamed(context, '/summon');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(30),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2196F3).withOpacity(0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  child: const Text('召喚する'),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () {
+                        context.read<GameProvider>().reset();
+                        Navigator.pushNamed(context, '/summon');
+                      },
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+                        child: Text(
+                          '召喚する',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

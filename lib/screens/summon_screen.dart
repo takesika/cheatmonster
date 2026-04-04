@@ -35,7 +35,7 @@ class _SummonScreenState extends State<SummonScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D001A), Color(0xFF1A0033)],
+            colors: [Colors.white, Color(0xFFE3F2FD)],
           ),
         ),
         child: SafeArea(
@@ -48,15 +48,15 @@ class _SummonScreenState extends State<SummonScreen> {
                 children: [
                   const SizedBox(height: 32),
                   const Icon(
-                    Icons.local_fire_department,
+                    Icons.auto_awesome,
                     size: 48,
-                    color: Colors.deepPurpleAccent,
+                    color: Color(0xFFFFB300),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'モンスターを生み出せ',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
+                          color: const Color(0xFF333333),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -98,19 +98,45 @@ class _SummonScreenState extends State<SummonScreen> {
                   Text(
                     '※ 攻撃力・守備力はランダムに決定されます',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white38,
+                          color: const Color(0xFF999999),
                         ),
                     textAlign: TextAlign.center,
                   ),
                   const Spacer(),
-                  ElevatedButton(
-                    onPressed: _onSummon,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: const Text('召喚！'),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(30),
+                        onTap: _onSummon,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Text(
+                            '召喚！',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
