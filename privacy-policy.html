@@ -5,50 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>プライバシーポリシー - チートモンスター</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #333; }
-        .container { background: #fff; padding: 30px; border-radius: 12px; }
-        h1 { font-size: 24px; }
-        h2 { font-size: 18px; margin-top: 24px; }
-        p, li { line-height: 1.8; }
-        .updated { color: #888; font-size: 14px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: linear-gradient(180deg, #fff, #E3F2FD); min-height: 100vh; color: #333; }
+        .header { background: linear-gradient(135deg, #1976D2, #42A5F5); padding: 40px 20px; text-align: center; }
+        .header h1 { color: #fff; font-size: 28px; letter-spacing: 2px; }
+        .header p { color: rgba(255,255,255,0.8); margin-top: 8px; font-size: 14px; }
+        .container { max-width: 700px; margin: -20px auto 40px; padding: 0 16px; }
+        .card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(33,150,243,0.1); }
+        .card h2 { font-size: 17px; color: #1976D2; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #E3F2FD; }
+        .card p { font-size: 14px; color: #555; line-height: 1.9; margin-bottom: 8px; }
+        .card ul { padding-left: 20px; margin: 8px 0; }
+        .card li { font-size: 14px; color: #555; line-height: 1.9; }
+        .card a { color: #1976D2; }
+        .updated { color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 4px; }
+        .footer { text-align: center; padding: 20px; color: #aaa; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>プライバシーポリシー</h1>
+    <div class="header">
+        <h1>チートモンスター</h1>
+        <p>プライバシーポリシー</p>
         <p class="updated">最終更新日: 2026年4月9日</p>
-
-        <h2>はじめに</h2>
-        <p>本プライバシーポリシーは、「チートモンスター」（以下「本アプリ」）がどのように情報を取り扱うかについて説明します。</p>
-
-        <h2>収集する情報</h2>
-        <p>本アプリは、個人を特定できる情報（氏名、住所、メールアドレスなど）を一切収集しません。</p>
-        <p>本アプリでは、ユーザーが入力したモンスター名および特殊能力のテキスト（最大20文字）をAI処理のためにサーバーに送信します。これらのデータは一時的な処理のみに使用され、保存されません。</p>
-
-        <h2>第三者サービスの利用</h2>
-        <p>本アプリは以下の第三者サービスを利用しています：</p>
-        <ul>
-            <li><strong>Google Gemini API</strong> - モンスター画像の生成およびバトルの勝敗判定に使用します。ユーザーが入力したモンスター名と特殊能力がAPIに送信されます。</li>
-        </ul>
-        <p>Google のプライバシーポリシーについては<a href="https://policies.google.com/privacy">こちら</a>をご確認ください。</p>
-
-        <h2>データの保存</h2>
-        <p>本アプリは、1日あたりのバトル回数をデバイス内にのみ保存します。この情報は外部に送信されません。</p>
-
-        <h2>セキュリティ</h2>
-        <p>本アプリは、通信にHTTPSを使用し、データの安全性を確保しています。</p>
-
-        <h2>お子様のプライバシー</h2>
-        <p>本アプリは、13歳未満のお子様から意図的に個人情報を収集することはありません。</p>
-
-        <h2>プライバシーポリシーの変更</h2>
-        <p>本ポリシーは予告なく変更される場合があります。変更があった場合は、本ページにて通知します。</p>
-
-        <h2>お問い合わせ</h2>
-        <p>本ポリシーに関するご質問は、以下までご連絡ください。</p>
-        <p>メール: main.account.81@gmail.com</p>
-
-        <p style="margin-top: 30px; color: #888; font-size: 12px;">&copy; 2026 takesika. All rights reserved.</p>
     </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>はじめに</h2>
+            <p>本プライバシーポリシーは、「チートモンスター」（以下「本アプリ」）がどのように情報を取り扱うかについて説明します。</p>
+        </div>
+
+        <div class="card">
+            <h2>収集する情報</h2>
+            <p>本アプリは、個人を特定できる情報（氏名、住所、メールアドレスなど）を一切収集しません。</p>
+            <p>本アプリでは、ユーザーが入力したモンスター名および特殊能力のテキスト（最大20文字）をAI処理のためにサーバーに送信します。これらのデータは一時的な処理のみに使用され、保存されません。</p>
+        </div>
+
+        <div class="card">
+            <h2>第三者サービスの利用</h2>
+            <p>本アプリは以下の第三者サービスを利用しています：</p>
+            <ul>
+                <li><strong>Google Gemini API</strong> — モンスター画像の生成およびバトルの勝敗判定に使用します。ユーザーが入力したモンスター名と特殊能力がAPIに送信されます。</li>
+            </ul>
+            <p>Googleのプライバシーポリシーについては<a href="https://policies.google.com/privacy">こちら</a>をご確認ください。</p>
+        </div>
+
+        <div class="card">
+            <h2>データの保存</h2>
+            <p>本アプリは、1日あたりのバトル回数をデバイス内にのみ保存します。この情報は外部に送信されません。</p>
+        </div>
+
+        <div class="card">
+            <h2>セキュリティ</h2>
+            <p>本アプリは、通信にHTTPSを使用し、データの安全性を確保しています。</p>
+        </div>
+
+        <div class="card">
+            <h2>お子様のプライバシー</h2>
+            <p>本アプリは、13歳未満のお子様から意図的に個人情報を収集することはありません。</p>
+        </div>
+
+        <div class="card">
+            <h2>プライバシーポリシーの変更</h2>
+            <p>本ポリシーは予告なく変更される場合があります。変更があった場合は、本ページにて通知します。</p>
+        </div>
+
+        <div class="card">
+            <h2>お問い合わせ</h2>
+            <p>本ポリシーに関するご質問は、以下までご連絡ください。</p>
+            <p>メール: <a href="mailto:main.account.81@gmail.com">main.account.81@gmail.com</a></p>
+        </div>
+    </div>
+
+    <div class="footer">&copy; 2026 takesika. All rights reserved.</div>
 </body>
 </html>

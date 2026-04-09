@@ -5,34 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>サポート - チートモンスター</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; color: #333; }
-        .container { background: #fff; padding: 30px; border-radius: 12px; }
-        h1 { font-size: 24px; }
-        h2 { font-size: 18px; margin-top: 24px; }
-        p, li { line-height: 1.8; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: linear-gradient(180deg, #fff, #E3F2FD); min-height: 100vh; color: #333; }
+        .header { background: linear-gradient(135deg, #1976D2, #42A5F5); padding: 40px 20px; text-align: center; }
+        .header h1 { color: #fff; font-size: 28px; letter-spacing: 2px; }
+        .header p { color: rgba(255,255,255,0.8); margin-top: 8px; font-size: 14px; }
+        .container { max-width: 700px; margin: -20px auto 40px; padding: 0 16px; }
+        .card { background: #fff; border-radius: 16px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(33,150,243,0.1); }
+        .card h2 { font-size: 18px; color: #1976D2; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card h2 .icon { width: 28px; height: 28px; background: #FFB300; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+        .faq-item { border-bottom: 1px solid #f0f0f0; padding: 16px 0; }
+        .faq-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .faq-item h3 { font-size: 15px; color: #333; margin-bottom: 8px; }
+        .faq-item h3::before { content: 'Q. '; color: #FFB300; font-weight: bold; }
+        .faq-item p { font-size: 14px; color: #666; line-height: 1.8; padding-left: 4px; }
+        .contact-btn { display: inline-block; background: linear-gradient(135deg, #1976D2, #42A5F5); color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 30px; font-size: 15px; font-weight: bold; letter-spacing: 1px; }
+        .contact-btn:hover { opacity: 0.9; }
+        .footer { text-align: center; padding: 20px; color: #aaa; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>サポート</h1>
-        <p>「チートモンスター」をご利用いただきありがとうございます。</p>
-
-        <h2>よくある質問</h2>
-
-        <h3>バトルができません</h3>
-        <p>1日のバトル回数は5回までです。日付が変わるとリセットされますので、翌日にお試しください。</p>
-
-        <h3>画像が表示されません</h3>
-        <p>インターネット接続をご確認ください。画像生成にはネットワーク接続が必要です。</p>
-
-        <h3>バトルの結果がおかしい</h3>
-        <p>バトルの勝敗はAIが攻撃力・守備力・特殊能力を総合的に判断して決定します。ステータスが高くても特殊能力の内容によって結果が変わることがあります。</p>
-
-        <h2>お問い合わせ</h2>
-        <p>上記で解決しない場合は、以下までお気軽にご連絡ください。</p>
-        <p>メール: main.account.81@gmail.com</p>
-
-        <p style="margin-top: 30px; color: #888; font-size: 12px;">&copy; 2026 takesika. All rights reserved.</p>
+    <div class="header">
+        <h1>チートモンスター</h1>
+        <p>サポート</p>
     </div>
+
+    <div class="container">
+        <div class="card">
+            <h2><span class="icon">?</span> よくある質問</h2>
+
+            <div class="faq-item">
+                <h3>バトルができません</h3>
+                <p>1日のバトル回数は5回までです。日付が変わるとリセットされますので、翌日にお試しください。</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>画像が表示されません</h3>
+                <p>モンスター画像の生成にはインターネット接続が必要です。Wi-Fiやモバイルデータ通信の接続状況をご確認ください。</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>バトルの結果に納得がいきません</h3>
+                <p>バトルの勝敗はAIが攻撃力・守備力・特殊能力を総合的に判断して決定します。ステータスが高くても、相手の特殊能力との相性によっては負けることがあります。それがチートスキルの醍醐味です！</p>
+            </div>
+
+            <div class="faq-item">
+                <h3>アプリが重い・固まる</h3>
+                <p>モンスター画像やバトル判定の生成中はAIが処理を行っているため、数秒〜十数秒かかることがあります。しばらくお待ちください。</p>
+            </div>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <h2><span class="icon">&#9993;</span> お問い合わせ</h2>
+            <p style="font-size: 14px; color: #666; margin-bottom: 16px;">上記で解決しない場合はお気軽にご連絡ください。</p>
+            <a href="mailto:main.account.81@gmail.com" class="contact-btn">メールで問い合わせる</a>
+        </div>
+    </div>
+
+    <div class="footer">&copy; 2026 takesika. All rights reserved.</div>
 </body>
 </html>
