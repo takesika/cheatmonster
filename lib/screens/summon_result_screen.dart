@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 import '../widgets/monster_card.dart';
 
@@ -64,6 +65,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
           child: SizedBox.expand(
             child: Consumer<GameProvider>(
               builder: (context, game, _) {
+                final isOnline = game.gameMode == GameMode.online;
                 final monster = game.playerMonster;
                 if (monster == null) {
                   return const Center(child: CircularProgressIndicator());
@@ -121,15 +123,33 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                           color: Colors.transparent,
                           child: InkWell(
                             borderRadius: BorderRadius.circular(30),
-                            onTap: () {
-                              Navigator.pushNamed(context, '/battle');
+                            onTap: () async {
+                              if (isOnline) {
+                                try {
+                                  await game.submitMonster();
+                                } catch (_) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('モンスターデータの送信に失敗しました'),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+                                if (context.mounted) {
+                                  Navigator.pushNamed(context, '/waiting');
+                                }
+                              } else {
+                                Navigator.pushNamed(context, '/battle');
+                              }
                             },
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
                                   horizontal: 48, vertical: 16),
                               child: Text(
-                                'バトルへ！',
-                                style: TextStyle(
+                                isOnline ? '準備完了！' : 'バトルへ！',
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,

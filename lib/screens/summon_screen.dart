@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 
 class SummonScreen extends StatefulWidget {
@@ -24,9 +25,12 @@ class _SummonScreenState extends State<SummonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline =
+        context.read<GameProvider>().gameMode == GameMode.online;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('モンスター召喚'),
+        title: Text(isOnline ? 'あなたのモンスターを召喚' : 'モンスター召喚'),
         backgroundColor: Colors.transparent,
       ),
       extendBodyBehindAppBar: true,
@@ -95,44 +99,45 @@ class _SummonScreenState extends State<SummonScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: const Color(0xFF2196F3).withOpacity(0.08),
+                  if (!isOnline)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: const Color(0xFF2196F3).withOpacity(0.08),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '遊び方',
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                  color: const Color(0xFF2196F3),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '\u2460 モンスター名と特殊能力を決めて召喚!\n'
+                            '\u2461 攻撃力・守備力はランダムに決定\n'
+                            '\u2462 相手モンスターとバトル!\n'
+                            '\u2463 AIがステータスと特殊能力を総合判断して勝ち負けを決定',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFF666666),
+                                  height: 1.6,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '特殊能力の内容が勝ち負けを左右する! チートスキルを考えよう',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFFFB300),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '遊び方',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: const Color(0xFF2196F3),
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '\u2460 モンスター名と特殊能力を決めて召喚!\n'
-                          '\u2461 攻撃力・守備力はランダムに決定\n'
-                          '\u2462 相手モンスターとバトル!\n'
-                          '\u2463 AIがステータスと特殊能力を総合判断して勝ち負けを決定',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFF666666),
-                                height: 1.6,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '特殊能力の内容が勝ち負けを左右する! チートスキルを考えよう',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: const Color(0xFFFFB300),
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
                   const Spacer(),
                   Container(
                     decoration: BoxDecoration(

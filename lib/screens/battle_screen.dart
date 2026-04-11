@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/battle_result.dart';
+import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 import '../widgets/monster_card.dart';
 
@@ -153,6 +154,26 @@ class _BattleScreenState extends State<BattleScreen>
       case BattlePhase.reveal:
         return const SizedBox(height: 48);
       case BattlePhase.ready:
+        final isOnline = game.gameMode == GameMode.online;
+        final isPlayer2 = isOnline && game.playerNumber == 2;
+
+        if (isPlayer2) {
+          // Player2: ジャッジ待機中
+          if (!game.isBattling && game.battleResult == null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              game.startOnlineBattle();
+            });
+          }
+          return const Column(
+            children: [
+              CircularProgressIndicator(color: Color(0xFFFFB300)),
+              SizedBox(height: 12),
+              Text('ジャッジを待機中...',
+                  style: TextStyle(color: Color(0xFF666666))),
+            ],
+          );
+        }
+
         return Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(30),
@@ -171,7 +192,13 @@ class _BattleScreenState extends State<BattleScreen>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(30),
-              onTap: () => game.startBattle(),
+              onTap: () {
+                if (isOnline) {
+                  game.startOnlineBattle();
+                } else {
+                  game.startBattle();
+                }
+              },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                 child: Text(
@@ -203,12 +230,24 @@ class _BattleScreenState extends State<BattleScreen>
 
   Widget _buildResult(BuildContext context, GameProvider game) {
     final result = game.battleResult!;
-    final outcomeText = switch (result.outcome) {
+    final isOnline = game.gameMode == GameMode.online;
+
+    // Online Player2: outcome "win" means player1 won, so invert for player2
+    BattleOutcome displayOutcome = result.outcome;
+    if (isOnline && game.playerNumber == 2) {
+      if (result.outcome == BattleOutcome.win) {
+        displayOutcome = BattleOutcome.lose;
+      } else if (result.outcome == BattleOutcome.lose) {
+        displayOutcome = BattleOutcome.win;
+      }
+    }
+
+    final outcomeText = switch (displayOutcome) {
       BattleOutcome.win => 'WIN!',
       BattleOutcome.lose => 'LOSE...',
       BattleOutcome.draw => 'DRAW',
     };
-    final outcomeColor = switch (result.outcome) {
+    final outcomeColor = switch (displayOutcome) {
       BattleOutcome.win => const Color(0xFFFFB300),
       BattleOutcome.lose => Colors.blueGrey,
       BattleOutcome.draw => const Color(0xFF888888),
@@ -250,9 +289,15 @@ class _BattleScreenState extends State<BattleScreen>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(30),
-              onTap: () {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/', (route) => false);
+              onTap: () async {
+                if (isOnline) {
+                  await game.deleteRoom();
+                }
+                game.reset();
+                if (context.mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                      context, '/', (route) => false);
+                }
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 40, vertical: 14),

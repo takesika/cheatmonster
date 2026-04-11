@@ -22,4 +22,18 @@ class Monster {
         specialAbility: specialAbility,
         imageBytes: imageBytes ?? this.imageBytes,
       );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'atk': atk,
+        'def': def,
+        'specialAbility': specialAbility,
+      };
+
+  factory Monster.fromJson(Map<String, dynamic> json) => Monster(
+        name: json['name'] as String,
+        atk: json['atk'] as int,
+        def: json['def'] as int,
+        specialAbility: json['specialAbility'] as String,
+      );
 }
