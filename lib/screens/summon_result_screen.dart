@@ -61,16 +61,16 @@ class _SummonResultScreenState extends State<SummonResultScreen>
           ),
         ),
         child: SafeArea(
-          child: Consumer<GameProvider>(
-            builder: (context, game, _) {
-              final monster = game.playerMonster;
-              if (monster == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          child: SizedBox.expand(
+            child: Consumer<GameProvider>(
+              builder: (context, game, _) {
+                final monster = game.playerMonster;
+                if (monster == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (!_showCard) ...[
                     const SizedBox(height: 80),
@@ -78,7 +78,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                   ] else ...[
                     const SizedBox(height: 40),
                     Text(
-                      '召喚成功！',
+                      game.isGeneratingImage ? '召喚中...' : '召喚成功！',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: const Color(0xFFFFB300),
@@ -148,7 +148,8 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                   ],
                 ],
               );
-            },
+              },
+            ),
           ),
         ),
       ),

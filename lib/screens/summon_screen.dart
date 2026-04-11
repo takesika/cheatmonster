@@ -94,13 +94,44 @@ class _SummonScreenState extends State<SummonScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '※ 攻撃力・守備力はランダムに決定されます',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF999999),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFF2196F3).withOpacity(0.08),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '遊び方',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: const Color(0xFF2196F3),
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
-                    textAlign: TextAlign.center,
+                        const SizedBox(height: 6),
+                        Text(
+                          '\u2460 モンスター名と特殊能力を決めて召喚!\n'
+                          '\u2461 攻撃力・守備力はランダムに決定\n'
+                          '\u2462 相手モンスターとバトル!\n'
+                          '\u2463 AIがステータスと特殊能力を総合判断して勝ち負けを決定',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFF666666),
+                                height: 1.6,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '特殊能力の内容が勝ち負けを左右する! チートスキルを考えよう',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: const Color(0xFFFFB300),
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   Container(

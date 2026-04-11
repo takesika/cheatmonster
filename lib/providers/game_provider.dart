@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/battle_result.dart';
 import '../models/monster.dart';
+import '../services/battle_limit_service.dart';
 import '../services/cpu_opponent_service.dart';
 import '../services/gemini_service.dart';
 import '../services/replicate_service.dart';
@@ -18,9 +19,19 @@ class GameProvider extends ChangeNotifier {
   final _geminiService = GeminiService();
   final _imageService = ImageGenerationService();
   final _cpuService = CpuOpponentService();
+  final _battleLimitService = BattleLimitService();
   final _rng = Random();
 
+  int remainingBattles = 5;
+
   bool isGeneratingCpuImage = false;
+
+  Future<void> loadRemainingBattles() async {
+    remainingBattles = await _battleLimitService.getRemainingBattles();
+    notifyListeners();
+  }
+
+  Future<bool> canBattle() => _battleLimitService.canBattle();
 
   Future<void> createPlayerMonster(String name, String specialAbility) async {
     final atk = _rng.nextInt(100) + 1;
@@ -81,9 +92,13 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> startBattle() async {
     if (playerMonster == null || cpuMonster == null) return;
+    if (!await canBattle()) return;
 
     isBattling = true;
     notifyListeners();
+
+    await _battleLimitService.recordBattle();
+    remainingBattles = await _battleLimitService.getRemainingBattles();
 
     try {
       battleResult =
