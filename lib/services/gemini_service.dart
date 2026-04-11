@@ -60,6 +60,13 @@ class GeminiService {
 特殊能力: $opponentAbility
 </monster>
 
+勝敗の判定ルール（最重要）:
+- outcomeは必ず1番目のモンスター（role="$role1"）の視点で判定してください。
+- 1番目のモンスター（$playerName）が勝った場合: "win"
+- 1番目のモンスター（$playerName）が負けた場合: "lose"
+- 引き分けの場合: "draw"
+- narrationの内容とoutcomeは必ず一致させてください。narrationで負けを描写しているのにoutcomeが"win"になるような矛盾は絶対に避けてください。
+
 以下のJSON形式で回答してください。narrationは日本語で2〜3文のドラマチックな戦闘描写にしてください。
 {"outcome": "win" または "lose" または "draw", "narration": "戦闘の描写"}
 JSONのみを返してください。

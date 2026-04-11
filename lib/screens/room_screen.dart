@@ -49,7 +49,6 @@ class _RoomScreenState extends State<RoomScreen> {
         _isLoading = false;
       });
 
-      // 60秒タイムアウト
       _timeoutTimer = Timer(const Duration(seconds: 60), () {
         _statusSubscription?.cancel();
         _roomService.deleteRoom(code);
@@ -62,8 +61,8 @@ class _RoomScreenState extends State<RoomScreen> {
         }
       });
 
-      // 相手の参加を監視
-      _statusSubscription = _roomService.listenForStatus(code).listen((status) {
+      _statusSubscription =
+          _roomService.listenForStatus(code).listen((status) {
         if (status == 'ready' && mounted) {
           _timeoutTimer?.cancel();
           _statusSubscription?.cancel();
@@ -146,51 +145,91 @@ class _RoomScreenState extends State<RoomScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.white, Color(0xFFE3F2FD)],
+            colors: [Color(0xFFF5F0EB), Color(0xFFE8E0F0)],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.redAccent),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  if (_mode == null) _buildModeSelection(),
-                  if (_mode == 'create') _buildCreateMode(),
-                  if (_mode == 'join') _buildJoinMode(),
-                  const SizedBox(height: 32),
-                  TextButton.icon(
-                    onPressed: _isLoading ? null : _goBack,
-                    icon: const Icon(Icons.arrow_back),
-                    label: Text(_mode == null ? 'ホームへ戻る' : '戻る'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF666666),
-                    ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -40,
+              left: -40,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFC9A84C).withOpacity(0.06),
+                      const Color(0xFFC9A84C).withOpacity(0.0),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
+            Positioned(
+              bottom: -50,
+              right: -30,
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF2B4C8C).withOpacity(0.05),
+                      const Color(0xFF2B4C8C).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_errorMessage != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFC0392B).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: const Color(0xFFC0392B)),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFFC0392B),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      if (_mode == null) _buildModeSelection(),
+                      if (_mode == 'create') _buildCreateMode(),
+                      if (_mode == 'join') _buildJoinMode(),
+                      const SizedBox(height: 32),
+                      TextButton.icon(
+                        onPressed: _isLoading ? null : _goBack,
+                        icon: const Icon(Icons.arrow_back),
+                        label:
+                            Text(_mode == null ? 'ホームへ戻る' : '戻る'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF5D5A72),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -202,13 +241,13 @@ class _RoomScreenState extends State<RoomScreen> {
         const Icon(
           Icons.people,
           size: 64,
-          color: Color(0xFFFFB300),
+          color: Color(0xFFC9A84C),
         ),
         const SizedBox(height: 16),
         Text(
           'オンライン対戦',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF333333),
+                color: const Color(0xFF1A1A3E),
               ),
         ),
         const SizedBox(height: 32),
@@ -232,11 +271,11 @@ class _RoomScreenState extends State<RoomScreen> {
     if (_isLoading) {
       return const Column(
         children: [
-          CircularProgressIndicator(color: Color(0xFF2196F3)),
+          CircularProgressIndicator(color: Color(0xFFC9A84C)),
           SizedBox(height: 16),
           Text(
             '部屋を作成中...',
-            style: TextStyle(color: Color(0xFF666666)),
+            style: TextStyle(color: Color(0xFF5D5A72)),
           ),
         ],
       );
@@ -247,7 +286,7 @@ class _RoomScreenState extends State<RoomScreen> {
         const Text(
           'ルームコード',
           style: TextStyle(
-            color: Color(0xFF666666),
+            color: Color(0xFF5D5A72),
             fontSize: 16,
           ),
         ),
@@ -265,16 +304,18 @@ class _RoomScreenState extends State<RoomScreen> {
             }
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF2196F3), width: 2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: const Color(0xFFC9A84C), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2196F3).withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  color: const Color(0xFFC9A84C).withOpacity(0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
@@ -288,22 +329,23 @@ class _RoomScreenState extends State<RoomScreen> {
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Courier',
                     letterSpacing: 8,
-                    color: Color(0xFF333333),
+                    color: Color(0xFF1A1A3E),
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Icon(Icons.copy, color: Color(0xFF2196F3), size: 20),
+                const Icon(Icons.copy,
+                    color: Color(0xFFC9A84C), size: 20),
               ],
             ),
           ),
         ),
         const SizedBox(height: 24),
-        const CircularProgressIndicator(color: Color(0xFFFFB300)),
+        const CircularProgressIndicator(color: Color(0xFFC9A84C)),
         const SizedBox(height: 16),
         const Text(
           '待機中... 相手の参加を待っています',
           style: TextStyle(
-            color: Color(0xFF666666),
+            color: Color(0xFF5D5A72),
             fontSize: 16,
           ),
         ),
@@ -317,7 +359,7 @@ class _RoomScreenState extends State<RoomScreen> {
         const Text(
           'ルームコードを入力',
           style: TextStyle(
-            color: Color(0xFF666666),
+            color: Color(0xFF5D5A72),
             fontSize: 16,
           ),
         ),
@@ -349,15 +391,16 @@ class _RoomScreenState extends State<RoomScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: Color(0xFF2196F3), width: 2),
+                borderSide: const BorderSide(
+                    color: Color(0xFFC9A84C), width: 2),
               ),
             ),
           ),
         ),
         const SizedBox(height: 24),
         _isLoading
-            ? const CircularProgressIndicator(color: Color(0xFF2196F3))
+            ? const CircularProgressIndicator(
+                color: Color(0xFFC9A84C))
             : _buildActionButton(
                 label: '参加する',
                 onTap: _joinRoom,
@@ -372,32 +415,33 @@ class _RoomScreenState extends State<RoomScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(16),
         gradient: const LinearGradient(
-          colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+          colors: [Color(0xFFC9A84C), Color(0xFFB8943F)],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2196F3).withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: const Color(0xFFC9A84C).withOpacity(0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 48, vertical: 18),
             child: Text(
               label,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 3,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
               ),
             ),
           ),

@@ -8,6 +8,7 @@ import '../models/monster.dart';
 import '../services/battle_limit_service.dart';
 import '../services/cpu_opponent_service.dart';
 import '../services/gemini_service.dart';
+import '../services/pvp_record_service.dart';
 import '../services/replicate_service.dart';
 import '../services/room_service.dart';
 
@@ -27,10 +28,13 @@ class GameProvider extends ChangeNotifier {
   final _imageService = ImageGenerationService();
   final _cpuService = CpuOpponentService();
   final _battleLimitService = BattleLimitService();
+  final _pvpRecordService = PvpRecordService();
   final _roomService = RoomService();
   final _rng = Random();
 
   int remainingBattles = 5;
+  int pvpTotalMatches = 0;
+  int pvpWins = 0;
 
   bool isGeneratingCpuImage = false;
 
@@ -40,6 +44,12 @@ class GameProvider extends ChangeNotifier {
   }
 
   Future<bool> canBattle() => _battleLimitService.canBattle();
+
+  Future<void> loadPvpRecord() async {
+    pvpTotalMatches = await _pvpRecordService.getTotalMatches();
+    pvpWins = await _pvpRecordService.getWins();
+    notifyListeners();
+  }
 
   void setGameMode(GameMode mode) {
     gameMode = mode;
@@ -148,9 +158,9 @@ class GameProvider extends ChangeNotifier {
             final outcome = result['outcome'] as String;
             BattleOutcome battleOutcome;
             if (outcome == 'player1_win') {
-              battleOutcome = BattleOutcome.win;
-            } else if (outcome == 'player2_win') {
               battleOutcome = BattleOutcome.lose;
+            } else if (outcome == 'player2_win') {
+              battleOutcome = BattleOutcome.win;
             } else {
               battleOutcome = BattleOutcome.draw;
             }
@@ -178,6 +188,11 @@ class GameProvider extends ChangeNotifier {
         narration: '通信エラーが発生しましたが、力比べで決着がつきました！',
       );
     } finally {
+      if (battleResult != null) {
+        await _pvpRecordService.recordMatch(battleResult!.outcome);
+        pvpTotalMatches = await _pvpRecordService.getTotalMatches();
+        pvpWins = await _pvpRecordService.getWins();
+      }
       isBattling = false;
       isWaitingForOpponent = false;
       notifyListeners();

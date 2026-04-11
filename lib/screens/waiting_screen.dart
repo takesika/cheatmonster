@@ -32,7 +32,6 @@ class _WaitingScreenState extends State<WaitingScreen> {
     final playerNum = game.playerNumber;
     if (roomCode == null || playerNum == null) return;
 
-    // 60秒タイムアウト
     _timeoutTimer = Timer(const Duration(seconds: 60), () {
       _opponentSubscription?.cancel();
       _roomService.deleteRoom(roomCode);
@@ -41,7 +40,6 @@ class _WaitingScreenState extends State<WaitingScreen> {
       }
     });
 
-    // 相手の ready を監視
     _opponentSubscription =
         _roomService.listenForOpponent(roomCode, playerNum).listen((ready) {
       if (ready && mounted) {
@@ -91,16 +89,57 @@ class _WaitingScreenState extends State<WaitingScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.white, Color(0xFFE3F2FD)],
+            colors: [Color(0xFFF5F0EB), Color(0xFFE8E0F0)],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: _timedOut ? _buildTimeoutView() : _buildWaitingView(),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -30,
+              right: -40,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFC9A84C).withOpacity(0.06),
+                      const Color(0xFFC9A84C).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+            Positioned(
+              bottom: -50,
+              left: -30,
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFF2B4C8C).withOpacity(0.05),
+                      const Color(0xFF2B4C8C).withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Center(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32),
+                  child: _timedOut
+                      ? _buildTimeoutView()
+                      : _buildWaitingView(),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -117,12 +156,12 @@ class _WaitingScreenState extends State<WaitingScreen> {
             isLoading: game.isGeneratingImage,
           ),
         const SizedBox(height: 32),
-        const CircularProgressIndicator(color: Color(0xFFFFB300)),
+        const CircularProgressIndicator(color: Color(0xFFC9A84C)),
         const SizedBox(height: 16),
         const Text(
           '相手の召喚を待っています...',
           style: TextStyle(
-            color: Color(0xFF666666),
+            color: Color(0xFF5D5A72),
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -138,13 +177,13 @@ class _WaitingScreenState extends State<WaitingScreen> {
         const Icon(
           Icons.timer_off,
           size: 64,
-          color: Color(0xFF999999),
+          color: Color(0xFF5D5A72),
         ),
         const SizedBox(height: 16),
         const Text(
           '相手が離脱しました',
           style: TextStyle(
-            color: Color(0xFF666666),
+            color: Color(0xFF5D5A72),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -155,7 +194,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
           icon: const Icon(Icons.home),
           label: const Text('ホームへ戻る'),
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF2196F3),
+            foregroundColor: const Color(0xFF2B4C8C),
             textStyle: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
