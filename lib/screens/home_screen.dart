@@ -3,8 +3,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
+import '../widgets/game_background.dart';
+import '../widgets/gradient_button.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,53 +27,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F0EB), Color(0xFFE8E0F0)],
-          ),
-        ),
+      body: GameBackground(
         child: Stack(
           children: [
-            // Decorative element 1: gold radial top-left
-            Positioned(
-              top: -80,
-              left: -60,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFC9A84C).withOpacity(0.06),
-                      const Color(0xFFC9A84C).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Decorative element 2: sapphire radial bottom-right
-            Positioned(
-              bottom: -100,
-              right: -80,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF2B4C8C).withOpacity(0.05),
-                      const Color(0xFF2B4C8C).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Decorative element 3: rotated square
             Positioned(
               top: 300,
               right: -40,
@@ -81,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   height: 160,
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color(0xFFC9A84C).withOpacity(0.06),
+                      color: AppColors.gold.withOpacity(0.06),
                       width: 2,
                     ),
                   ),
@@ -101,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Icon(
                           Icons.auto_awesome,
                           size: 56,
-                          color: Color(0xFFC9A84C),
+                          color: AppColors.gold,
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -111,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               .textTheme
                               .headlineLarge
                               ?.copyWith(
-                                color: const Color(0xFF1A1A3E),
+                                color: AppColors.textPrimary,
                                 fontSize: 44,
                                 height: 1.1,
                                 letterSpacing: 3,
@@ -121,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const Text(
                           'チートスキルで最強モンスターを作れ！',
                           style: TextStyle(
-                            color: Color(0xFF5D5A72),
+                            color: AppColors.textSecondary,
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -134,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: Colors.white.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFC9A84C)
+                              color: AppColors.gold
                                   .withOpacity(0.3),
                             ),
                           ),
@@ -145,16 +104,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Icons.local_fire_department,
                                 size: 18,
                                 color: canPlay
-                                    ? const Color(0xFFC9A84C)
-                                    : const Color(0xFFC0392B),
+                                    ? AppColors.gold
+                                    : AppColors.ruby,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 '本日の残りバトル: $remaining / 5',
                                 style: TextStyle(
                                   color: canPlay
-                                      ? const Color(0xFF2B4C8C)
-                                      : const Color(0xFFC0392B),
+                                      ? AppColors.sapphire
+                                      : AppColors.ruby,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -162,99 +121,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 32),
-                        // Summon button
                         Opacity(
                           opacity: canPlay ? 1.0 : 0.4,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFFC9A84C),
-                                  Color(0xFFB8943F),
-                                ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFC9A84C)
-                                      .withOpacity(0.35),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: canPlay
-                                    ? () {
-                                        game.reset();
-                                        Navigator.pushNamed(
-                                            context, '/summon');
-                                      }
-                                    : null,
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 52, vertical: 17),
-                                  child: Text(
-                                    '召喚する',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 19,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                          child: GradientButton(
+                            label: 'CPU対戦',
+                            fontSize: 19,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 52, vertical: 17),
+                            onTap: canPlay
+                                ? () {
+                                    game.reset();
+                                    Navigator.pushNamed(
+                                        context, '/summon');
+                                  }
+                                : null,
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // PvP button
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF6C3D91),
-                                Color(0xFF8B5CB5),
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF6C3D91)
-                                    .withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                game.reset();
-                                game.setGameMode(GameMode.online);
-                                Navigator.pushNamed(context, '/room');
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 52, vertical: 17),
-                                child: Text(
-                                  '対人対戦',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        GradientButton(
+                          label: '対人戦',
+                          fontSize: 19,
+                          gradientColors: const [
+                            AppColors.amethyst,
+                            AppColors.amethystLight,
+                          ],
+                          shadowColor: AppColors.amethyst,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 52, vertical: 17),
+                          onTap: () {
+                            game.reset();
+                            game.setGameMode(GameMode.online);
+                            Navigator.pushNamed(context, '/room');
+                          },
                         ),
                         if (game.pvpTotalMatches > 0) ...[
                           const SizedBox(height: 16),
@@ -265,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Colors.white.withOpacity(0.9),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color(0xFFC9A84C)
+                                color: AppColors.gold
                                     .withOpacity(0.3),
                               ),
                             ),
@@ -275,13 +173,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 const Icon(
                                   Icons.emoji_events,
                                   size: 18,
-                                  color: Color(0xFFC9A84C),
+                                  color: AppColors.gold,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '戦績: ${game.pvpWins}勝 / ${game.pvpTotalMatches}戦',
+                                  '対人戦績: ${game.pvpWins}勝 / ${game.pvpTotalMatches}戦',
                                   style: const TextStyle(
-                                    color: Color(0xFF2B4C8C),
+                                    color: AppColors.sapphire,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -293,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 12),
                           const Text(
                             '明日またバトルできます！',
-                            style: TextStyle(color: Color(0xFF5D5A72)),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ],
                       ],

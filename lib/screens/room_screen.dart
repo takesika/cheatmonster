@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 import '../services/room_service.dart';
+import '../widgets/game_background.dart';
+import '../widgets/gradient_button.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({super.key});
@@ -140,96 +143,51 @@ class _RoomScreenState extends State<RoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F0EB), Color(0xFFE8E0F0)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -40,
-              left: -40,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFC9A84C).withOpacity(0.06),
-                      const Color(0xFFC9A84C).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -50,
-              right: -30,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF2B4C8C).withOpacity(0.05),
-                      const Color(0xFF2B4C8C).withOpacity(0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFC0392B).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border:
-                                Border.all(color: const Color(0xFFC0392B)),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: const TextStyle(
-                              color: Color(0xFFC0392B),
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      if (_mode == null) _buildModeSelection(),
-                      if (_mode == 'create') _buildCreateMode(),
-                      if (_mode == 'join') _buildJoinMode(),
-                      const SizedBox(height: 32),
-                      TextButton.icon(
-                        onPressed: _isLoading ? null : _goBack,
-                        icon: const Icon(Icons.arrow_back),
-                        label:
-                            Text(_mode == null ? 'ホームへ戻る' : '戻る'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF5D5A72),
-                        ),
+      body: GameBackground(
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.ruby.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: AppColors.ruby),
                       ),
-                    ],
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(
+                          color: AppColors.ruby,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  if (_mode == null) _buildModeSelection(),
+                  if (_mode == 'create') _buildCreateMode(),
+                  if (_mode == 'join') _buildJoinMode(),
+                  const SizedBox(height: 32),
+                  TextButton.icon(
+                    onPressed: _isLoading ? null : _goBack,
+                    icon: const Icon(Icons.arrow_back),
+                    label:
+                        Text(_mode == null ? 'ホームへ戻る' : '戻る'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -241,27 +199,31 @@ class _RoomScreenState extends State<RoomScreen> {
         const Icon(
           Icons.people,
           size: 64,
-          color: Color(0xFFC9A84C),
+          color: AppColors.gold,
         ),
         const SizedBox(height: 16),
         Text(
           'オンライン対戦',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF1A1A3E),
+                color: AppColors.textPrimary,
               ),
         ),
         const SizedBox(height: 32),
-        _buildActionButton(
+        GradientButton(
           label: '部屋を作る',
           onTap: _createRoom,
+          padding: const EdgeInsets.symmetric(
+              horizontal: 48, vertical: 18),
         ),
         const SizedBox(height: 16),
-        _buildActionButton(
+        GradientButton(
           label: '部屋に入る',
           onTap: () => setState(() {
             _mode = 'join';
             _errorMessage = null;
           }),
+          padding: const EdgeInsets.symmetric(
+              horizontal: 48, vertical: 18),
         ),
       ],
     );
@@ -271,11 +233,11 @@ class _RoomScreenState extends State<RoomScreen> {
     if (_isLoading) {
       return const Column(
         children: [
-          CircularProgressIndicator(color: Color(0xFFC9A84C)),
+          CircularProgressIndicator(color: AppColors.gold),
           SizedBox(height: 16),
           Text(
             '部屋を作成中...',
-            style: TextStyle(color: Color(0xFF5D5A72)),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
         ],
       );
@@ -286,7 +248,7 @@ class _RoomScreenState extends State<RoomScreen> {
         const Text(
           'ルームコード',
           style: TextStyle(
-            color: Color(0xFF5D5A72),
+            color: AppColors.textSecondary,
             fontSize: 16,
           ),
         ),
@@ -310,10 +272,10 @@ class _RoomScreenState extends State<RoomScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                  color: const Color(0xFFC9A84C), width: 2),
+                  color: AppColors.gold, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFC9A84C).withOpacity(0.12),
+                  color: AppColors.gold.withOpacity(0.12),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -329,23 +291,23 @@ class _RoomScreenState extends State<RoomScreen> {
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Courier',
                     letterSpacing: 8,
-                    color: Color(0xFF1A1A3E),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 12),
                 const Icon(Icons.copy,
-                    color: Color(0xFFC9A84C), size: 20),
+                    color: AppColors.gold, size: 20),
               ],
             ),
           ),
         ),
         const SizedBox(height: 24),
-        const CircularProgressIndicator(color: Color(0xFFC9A84C)),
+        const CircularProgressIndicator(color: AppColors.gold),
         const SizedBox(height: 16),
         const Text(
           '待機中... 相手の参加を待っています',
           style: TextStyle(
-            color: Color(0xFF5D5A72),
+            color: AppColors.textSecondary,
             fontSize: 16,
           ),
         ),
@@ -359,7 +321,7 @@ class _RoomScreenState extends State<RoomScreen> {
         const Text(
           'ルームコードを入力',
           style: TextStyle(
-            color: Color(0xFF5D5A72),
+            color: AppColors.textSecondary,
             fontSize: 16,
           ),
         ),
@@ -392,7 +354,7 @@ class _RoomScreenState extends State<RoomScreen> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(
-                    color: Color(0xFFC9A84C), width: 2),
+                    color: AppColors.gold, width: 2),
               ),
             ),
           ),
@@ -400,53 +362,14 @@ class _RoomScreenState extends State<RoomScreen> {
         const SizedBox(height: 24),
         _isLoading
             ? const CircularProgressIndicator(
-                color: Color(0xFFC9A84C))
-            : _buildActionButton(
+                color: AppColors.gold)
+            : GradientButton(
                 label: '参加する',
                 onTap: _joinRoom,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 48, vertical: 18),
               ),
       ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFC9A84C), Color(0xFFB8943F)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFC9A84C).withOpacity(0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 48, vertical: 18),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -190,8 +190,7 @@ class GameProvider extends ChangeNotifier {
     } finally {
       if (battleResult != null) {
         await _pvpRecordService.recordMatch(battleResult!.outcome);
-        pvpTotalMatches = await _pvpRecordService.getTotalMatches();
-        pvpWins = await _pvpRecordService.getWins();
+        await loadPvpRecord();
       }
       isBattling = false;
       isWaitingForOpponent = false;

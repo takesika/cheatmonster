@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../config/theme.dart';
 import '../models/monster.dart';
 
 class MonsterCard extends StatelessWidget {
@@ -55,16 +56,16 @@ class MonsterCard extends StatelessWidget {
       height: cardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: const Color(0xFFFFFEF9),
-        border: Border.all(color: const Color(0xFFC9A84C), width: 3),
+        color: AppColors.cardWhite,
+        border: Border.all(color: AppColors.gold, width: 3),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFC9A84C).withOpacity(0.3),
+            color: AppColors.gold.withOpacity(0.3),
             blurRadius: 40,
             spreadRadius: 8,
           ),
           BoxShadow(
-            color: const Color(0xFF2B4C8C).withOpacity(0.08),
+            color: AppColors.sapphire.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -81,7 +82,7 @@ class MonsterCard extends StatelessWidget {
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
-                color: Color(0xFF1A1A3E),
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -96,8 +97,8 @@ class MonsterCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatLarge('ATK', monster.atk, const Color(0xFFC0392B)),
-                _buildStatLarge('DEF', monster.def, const Color(0xFF2B4C8C)),
+                _buildStatLarge('ATK', monster.atk, AppColors.ruby),
+                _buildStatLarge('DEF', monster.def, AppColors.sapphire),
               ],
             ),
             const SizedBox(height: 10),
@@ -105,16 +106,16 @@ class MonsterCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: const Color(0xFFC9A84C).withOpacity(0.12),
+                color: AppColors.gold.withOpacity(0.12),
                 border: Border.all(
-                  color: const Color(0xFFC9A84C).withOpacity(0.3),
+                  color: AppColors.gold.withOpacity(0.3),
                 ),
               ),
               child: Text(
                 monster.specialAbility,
                 style: const TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF5D5A72),
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
@@ -170,17 +171,17 @@ class MonsterCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF2B4C8C), Color(0xFF1A1A3E)],
+          colors: [AppColors.sapphire, AppColors.textPrimary],
         ),
-        border: Border.all(color: const Color(0xFFC9A84C), width: 2.5),
+        border: Border.all(color: AppColors.gold, width: 2.5),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2B4C8C).withOpacity(0.08),
+            color: AppColors.sapphire.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: const Color(0xFFC9A84C).withOpacity(0.15),
+            color: AppColors.gold.withOpacity(0.15),
             blurRadius: 12,
             spreadRadius: -2,
             offset: const Offset(0, 2),
@@ -189,56 +190,26 @@ class MonsterCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Corner decorative dots
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC9A84C).withOpacity(0.4),
+          for (final pos in [
+            const Alignment(-1, -1),
+            const Alignment(1, -1),
+            const Alignment(-1, 1),
+            const Alignment(1, 1),
+          ])
+            Positioned(
+              top: pos.y < 0 ? 12 : null,
+              bottom: pos.y > 0 ? 12 : null,
+              left: pos.x < 0 ? 12 : null,
+              right: pos.x > 0 ? 12 : null,
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.gold.withOpacity(0.4),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC9A84C).withOpacity(0.4),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 12,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC9A84C).withOpacity(0.4),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            right: 12,
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFC9A84C).withOpacity(0.4),
-              ),
-            ),
-          ),
-          // Center diamond pattern
           Center(
             child: Transform.rotate(
               angle: pi / 4,
@@ -247,7 +218,7 @@ class MonsterCard extends StatelessWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: const Color(0xFFC9A84C).withOpacity(0.3),
+                    color: AppColors.gold.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -255,7 +226,7 @@ class MonsterCard extends StatelessWidget {
                   child: Icon(
                     Icons.auto_awesome,
                     size: 36,
-                    color: Color(0xFFE8D48B),
+                    color: AppColors.goldLight,
                   ),
                 ),
               ),
@@ -276,20 +247,20 @@ class MonsterCard extends StatelessWidget {
       height: cardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        color: const Color(0xFFFFFEF9),
+        color: AppColors.cardWhite,
         border: Border.all(
-          color: const Color(0xFFC9A84C),
+          color: AppColors.gold,
           width: 2.5,
           strokeAlign: BorderSide.strokeAlignInside,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2B4C8C).withOpacity(0.08),
+            color: AppColors.sapphire.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: const Color(0xFFC9A84C).withOpacity(0.15),
+            color: AppColors.gold.withOpacity(0.15),
             blurRadius: 12,
             spreadRadius: -2,
             offset: const Offset(0, 2),
@@ -307,7 +278,7 @@ class MonsterCard extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
-                color: Color(0xFF1A1A3E),
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -324,8 +295,8 @@ class MonsterCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('ATK', monster.atk, const Color(0xFFC0392B)),
-                _buildStat('DEF', monster.def, const Color(0xFF2B4C8C)),
+                _buildStat('ATK', monster.atk, AppColors.ruby),
+                _buildStat('DEF', monster.def, AppColors.sapphire),
               ],
             ),
             const SizedBox(height: 6),
@@ -333,16 +304,16 @@ class MonsterCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: const Color(0xFFC9A84C).withOpacity(0.12),
+                color: AppColors.gold.withOpacity(0.12),
                 border: Border.all(
-                  color: const Color(0xFFC9A84C).withOpacity(0.3),
+                  color: AppColors.gold.withOpacity(0.3),
                 ),
               ),
               child: Text(
                 monster.specialAbility,
                 style: const TextStyle(
                   fontSize: 10,
-                  color: Color(0xFF5D5A72),
+                  color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
