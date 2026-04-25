@@ -24,6 +24,14 @@ class GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = AppScale.of(context);
+
+    EdgeInsetsGeometry effectivePadding = padding;
+    if (padding == const EdgeInsets.symmetric(horizontal: 48, vertical: 16)) {
+      effectivePadding =
+          EdgeInsets.symmetric(horizontal: 48 * scale, vertical: 16);
+    }
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -42,7 +50,7 @@ class GradientButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: padding,
+            padding: effectivePadding,
             child: Text(
               label,
               textAlign: TextAlign.center,

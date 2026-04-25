@@ -53,11 +53,15 @@ class RoomService {
   Future<void> submitMonster(
     String roomCode,
     int playerNum,
-    Monster monster,
-  ) async {
+    Monster monster, {
+    int pvpWins = 0,
+    int pvpTotalMatches = 0,
+  }) async {
     await _db.child('rooms/$roomCode/player$playerNum').set({
       ...monster.toJson(),
       'ready': true,
+      'pvpWins': pvpWins,
+      'pvpTotalMatches': pvpTotalMatches,
     });
   }
 
@@ -101,8 +105,8 @@ class RoomService {
     await _db.child('rooms/$roomCode/status').set('done');
   }
 
-  /// 相手プレイヤーのモンスターデータを取得
-  Future<Monster?> getOpponentMonster(
+  /// 相手プレイヤーのモンスターデータと戦績を取得
+  Future<({Monster monster, int pvpWins, int pvpTotalMatches})?> getOpponentMonster(
     String roomCode,
     int myPlayerNum,
   ) async {
@@ -112,8 +116,54 @@ class RoomService {
     if (!snapshot.exists) return null;
 
     final data = Map<String, dynamic>.from(snapshot.value as Map);
+    final pvpWins = (data['pvpWins'] as num?)?.toInt() ?? 0;
+    final pvpTotalMatches = (data['pvpTotalMatches'] as num?)?.toInt() ?? 0;
     data.remove('ready');
-    return Monster.fromJson(data);
+    data.remove('pvpWins');
+    data.remove('pvpTotalMatches');
+    return (
+      monster: Monster.fromJson(data),
+      pvpWins: pvpWins,
+      pvpTotalMatches: pvpTotalMatches,
+    );
+  }
+
+  /// 「続行」フラグをセット
+  Future<void> setContinue(String roomCode, int playerNum) async {
+    await _db.child('rooms/$roomCode/player${playerNum}_continue').set(true);
+  }
+
+  /// 「終わる」フラグをセット
+  Future<void> setQuit(String roomCode, int playerNum) async {
+    await _db.child('rooms/$roomCode/player${playerNum}_quit').set(true);
+  }
+
+  /// 相手の続行/終了選択を監視するStream
+  /// "continue" = 相手が続行、"quit" = 相手が終了
+  Stream<String> listenForContinueStatus(String roomCode, int playerNum) {
+    final opponentNum = playerNum == 1 ? 2 : 1;
+    return _db.child('rooms/$roomCode').onValue.map((event) {
+      final value = event.snapshot.value;
+      if (value == null) return 'waiting';
+      final data = Map<String, dynamic>.from(value as Map);
+      if (data['player${opponentNum}_quit'] == true) return 'quit';
+      if (data['player${opponentNum}_continue'] == true) return 'continue';
+      return 'waiting';
+    });
+  }
+
+  /// 次のバトルのためにプレイヤー・結果データをリセット
+  Future<void> resetForNextBattle(String roomCode) async {
+    await Future.wait([
+      _db.child('rooms/$roomCode/player1').remove(),
+      _db.child('rooms/$roomCode/player2').remove(),
+      _db.child('rooms/$roomCode/result').remove(),
+      _db.child('rooms/$roomCode/player1_continue').remove(),
+      _db.child('rooms/$roomCode/player2_continue').remove(),
+      _db.child('rooms/$roomCode/player1_quit').remove(),
+      _db.child('rooms/$roomCode/player2_quit').remove(),
+    ]);
+    await _db.child('rooms/$roomCode/status').set('ready');
   }
 
   /// 部屋データを削除

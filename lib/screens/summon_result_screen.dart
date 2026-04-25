@@ -61,6 +61,8 @@ class _SummonResultScreenState extends State<SummonResultScreen>
           child: SizedBox.expand(
             child: Consumer<GameProvider>(
               builder: (context, game, _) {
+                final screenHeight = MediaQuery.of(context).size.height;
+                final scale = AppScale.of(context);
                 final isOnline = game.gameMode == GameMode.online;
                 final monster = game.playerMonster;
                 if (monster == null) {
@@ -72,10 +74,10 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (!_showCard) ...[
-                      const SizedBox(height: 80),
-                      _buildSummoningEffect(),
+                      SizedBox(height: screenHeight * 0.1),
+                      _buildSummoningEffect(scale),
                     ] else ...[
-                      const SizedBox(height: 40),
+                      SizedBox(height: screenHeight * 0.05),
                       Text(
                         game.isGeneratingImage ? '召喚中...' : '召喚成功！',
                         style: Theme.of(context)
@@ -149,7 +151,7 @@ class _SummonResultScreenState extends State<SummonResultScreen>
     );
   }
 
-  Widget _buildSummoningEffect() {
+  Widget _buildSummoningEffect(double scale) {
     return Column(
       children: [
         TweenAnimationBuilder<double>(
@@ -161,8 +163,8 @@ class _SummonResultScreenState extends State<SummonResultScreen>
               child: Transform.scale(
                 scale: 0.5 + value * 0.5,
                 child: Container(
-                  width: 120,
-                  height: 120,
+                  width: 120 * scale,
+                  height: 120 * scale,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     boxShadow: [
@@ -174,9 +176,9 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                       ),
                     ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.auto_awesome,
-                    size: 64,
+                    size: 64 * scale,
                     color: AppColors.gold,
                   ),
                 ),

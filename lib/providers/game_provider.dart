@@ -19,6 +19,9 @@ class GameProvider extends ChangeNotifier {
   bool isGeneratingImage = false;
   bool isBattling = false;
 
+  int cpuStage = 0;
+  List<String> playerAbilityHistory = [];
+
   GameMode gameMode = GameMode.cpu;
   String? roomCode;
   int? playerNumber;
@@ -37,6 +40,11 @@ class GameProvider extends ChangeNotifier {
   int pvpWins = 0;
 
   bool isGeneratingCpuImage = false;
+
+  int opponentPvpWins = 0;
+  int opponentPvpTotalMatches = 0;
+
+  int onlineBattleCount = 0;
 
   Future<void> loadRemainingBattles() async {
     remainingBattles = await _battleLimitService.getRemainingBattles();
@@ -77,11 +85,14 @@ class GameProvider extends ChangeNotifier {
       return;
     }
 
+    if (cpuStage == 0) {
+      cpuStage = 1;
+    }
+
     isGeneratingImage = true;
     isGeneratingCpuImage = true;
     notifyListeners();
 
-    // プレイヤー画像生成、CPU名前+能力+画像生成を全て並列
     await Future.wait([
       _generatePlayerImage(name, specialAbility),
       _generateCpuMonsterAndImage(),
@@ -96,8 +107,14 @@ class GameProvider extends ChangeNotifier {
     await _generatePlayerImage(name, specialAbility);
   }
 
-  Future<void> setOpponentFromJson(Map<String, dynamic> json) async {
+  Future<void> setOpponentFromJson(
+    Map<String, dynamic> json, {
+    int pvpWins = 0,
+    int pvpTotalMatches = 0,
+  }) async {
     cpuMonster = Monster.fromJson(json);
+    opponentPvpWins = pvpWins;
+    opponentPvpTotalMatches = pvpTotalMatches;
     isGeneratingCpuImage = true;
     notifyListeners();
 
@@ -108,7 +125,6 @@ class GameProvider extends ChangeNotifier {
         cpuMonster = cpuMonster!.copyWith(imageBytes: imageBytes);
       }
     } catch (_) {
-      // Continue without image
     } finally {
       isGeneratingCpuImage = false;
       notifyListeners();
@@ -117,7 +133,13 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> submitMonster() async {
     if (roomCode == null || playerNumber == null || playerMonster == null) return;
-    await _roomService.submitMonster(roomCode!, playerNumber!, playerMonster!);
+    await _roomService.submitMonster(
+      roomCode!,
+      playerNumber!,
+      playerMonster!,
+      pvpWins: pvpWins,
+      pvpTotalMatches: pvpTotalMatches,
+    );
   }
 
   Future<void> deleteRoom() async {
@@ -129,6 +151,7 @@ class GameProvider extends ChangeNotifier {
   Future<void> startOnlineBattle() async {
     if (playerMonster == null || cpuMonster == null) return;
 
+    onlineBattleCount++;
     isBattling = true;
     notifyListeners();
 
@@ -139,7 +162,6 @@ class GameProvider extends ChangeNotifier {
           cpuMonster!,
           isOnline: true,
         );
-        // Player1がジャッジ結果をFirebaseに送信
         int winnerPlayerNum;
         if (battleResult!.outcome == BattleOutcome.win) {
           winnerPlayerNum = 1;
@@ -150,7 +172,6 @@ class GameProvider extends ChangeNotifier {
         }
         await _roomService.submitResult(roomCode!, battleResult!, winnerPlayerNum);
       } else {
-        // Player2: Firebaseからジャッジ結果を待つ
         isWaitingForOpponent = true;
         notifyListeners();
         await for (final result in _roomService.listenForResult(roomCode!)) {
@@ -173,20 +194,7 @@ class GameProvider extends ChangeNotifier {
         }
       }
     } catch (_) {
-      final playerTotal = playerMonster!.atk + playerMonster!.def;
-      final opponentTotal = cpuMonster!.atk + cpuMonster!.def;
-      BattleOutcome outcome;
-      if (playerTotal > opponentTotal) {
-        outcome = BattleOutcome.win;
-      } else if (playerTotal < opponentTotal) {
-        outcome = BattleOutcome.lose;
-      } else {
-        outcome = BattleOutcome.draw;
-      }
-      battleResult = BattleResult(
-        outcome: outcome,
-        narration: '通信エラーが発生しましたが、力比べで決着がつきました！',
-      );
+      battleResult = _createFallbackResult();
     } finally {
       if (battleResult != null) {
         await _pvpRecordService.recordMatch(battleResult!.outcome);
@@ -206,7 +214,6 @@ class GameProvider extends ChangeNotifier {
         playerMonster = playerMonster!.copyWith(imageBytes: imageBytes);
       }
     } catch (_) {
-      // Image generation failed, continue without image
     } finally {
       isGeneratingImage = false;
       notifyListeners();
@@ -215,21 +222,66 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> _generateCpuMonsterAndImage() async {
     try {
-      // まずGeminiで名前と能力を生成
-      cpuMonster = await _cpuService.generate();
+      cpuMonster = await _cpuService.generate(
+        stage: cpuStage,
+        counterAbilities: playerAbilityHistory,
+      );
       notifyListeners();
 
-      // 次に画像生成
       final imageBytes = await _imageService.generateMonsterImage(
           cpuMonster!.name, cpuMonster!.specialAbility);
       if (imageBytes != null) {
         cpuMonster = cpuMonster!.copyWith(imageBytes: imageBytes);
       }
     } catch (_) {
-      // Continue without image
     } finally {
       isGeneratingCpuImage = false;
       notifyListeners();
+    }
+  }
+
+  void _resetBattleState() {
+    playerMonster = null;
+    cpuMonster = null;
+    battleResult = null;
+    isGeneratingImage = false;
+    isGeneratingCpuImage = false;
+    isBattling = false;
+  }
+
+  BattleResult _createFallbackResult() {
+    final playerTotal = playerMonster!.atk + playerMonster!.def;
+    final cpuTotal = cpuMonster!.atk + cpuMonster!.def;
+    BattleOutcome outcome;
+    if (playerTotal > cpuTotal) {
+      outcome = BattleOutcome.win;
+    } else if (playerTotal < cpuTotal) {
+      outcome = BattleOutcome.lose;
+    } else {
+      outcome = BattleOutcome.draw;
+    }
+    return BattleResult(outcome: outcome, narration: '通信エラーが発生しましたが、力比べで決着がつきました！');
+  }
+
+  Future<void> setContinue() async {
+    if (roomCode != null && playerNumber != null) {
+      await _roomService.setContinue(roomCode!, playerNumber!);
+    }
+  }
+
+  Future<void> setQuit() async {
+    if (roomCode != null && playerNumber != null) {
+      await _roomService.setQuit(roomCode!, playerNumber!);
+    }
+  }
+
+  Stream<String> listenForContinueStatus() {
+    return _roomService.listenForContinueStatus(roomCode!, playerNumber!);
+  }
+
+  Future<void> resetRoomForNextBattle() async {
+    if (roomCode != null) {
+      await _roomService.resetForNextBattle(roomCode!);
     }
   }
 
@@ -240,44 +292,48 @@ class GameProvider extends ChangeNotifier {
     isBattling = true;
     notifyListeners();
 
-    await _battleLimitService.recordBattle();
-    remainingBattles = await _battleLimitService.getRemainingBattles();
+    if (cpuStage <= 1) {
+      await _battleLimitService.recordBattle();
+      remainingBattles = await _battleLimitService.getRemainingBattles();
+    }
 
     try {
       battleResult =
           await _geminiService.judgeBattle(playerMonster!, cpuMonster!);
     } catch (_) {
-      // Fallback to stats comparison
-      final playerTotal = playerMonster!.atk + playerMonster!.def;
-      final cpuTotal = cpuMonster!.atk + cpuMonster!.def;
-      BattleOutcome outcome;
-      if (playerTotal > cpuTotal) {
-        outcome = BattleOutcome.win;
-      } else if (playerTotal < cpuTotal) {
-        outcome = BattleOutcome.lose;
-      } else {
-        outcome = BattleOutcome.draw;
-      }
-      battleResult = BattleResult(
-        outcome: outcome,
-        narration: '通信エラーが発生しましたが、力比べで決着がつきました！',
-      );
+      battleResult = _createFallbackResult();
     } finally {
       isBattling = false;
       notifyListeners();
     }
   }
 
+  void resetForNextCpuStage() {
+    playerAbilityHistory.add(playerMonster!.specialAbility);
+    cpuStage++;
+    _resetBattleState();
+    notifyListeners();
+  }
+
+  void resetForNextBattle() {
+    _resetBattleState();
+    isWaitingForOpponent = false;
+    opponentPvpWins = 0;
+    opponentPvpTotalMatches = 0;
+    notifyListeners();
+  }
+
   void reset() {
-    playerMonster = null;
-    cpuMonster = null;
-    battleResult = null;
-    isGeneratingImage = false;
-    isBattling = false;
+    _resetBattleState();
     gameMode = GameMode.cpu;
+    cpuStage = 0;
+    playerAbilityHistory = [];
     roomCode = null;
     playerNumber = null;
     isWaitingForOpponent = false;
+    onlineBattleCount = 0;
+    opponentPvpWins = 0;
+    opponentPvpTotalMatches = 0;
     notifyListeners();
   }
 }

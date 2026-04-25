@@ -48,6 +48,7 @@ class MonsterCard extends StatelessWidget {
 
   Widget _buildExpandedCard(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final scale = AppScale.of(context);
     final cardWidth = screenWidth * 0.8;
     final cardHeight = cardWidth * 1.4;
 
@@ -72,7 +73,7 @@ class MonsterCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -97,8 +98,8 @@ class MonsterCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatLarge('ATK', monster.atk, AppColors.ruby),
-                _buildStatLarge('DEF', monster.def, AppColors.sapphire),
+                _buildStatLarge('ATK', monster.atk, AppColors.ruby, scale),
+                _buildStatLarge('DEF', monster.def, AppColors.sapphire, scale),
               ],
             ),
             const SizedBox(height: 10),
@@ -127,7 +128,7 @@ class MonsterCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatLarge(String label, int value, Color color) {
+  Widget _buildStatLarge(String label, int value, Color color, double scale) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -148,8 +149,8 @@ class MonsterCard extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '$value',
-            style: const TextStyle(
-              fontSize: 28,
+            style: TextStyle(
+              fontSize: 28 * scale,
               fontWeight: FontWeight.w900,
               color: Colors.white,
             ),
@@ -161,7 +162,8 @@ class MonsterCard extends StatelessWidget {
 
   Widget _buildCardBack(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth * 0.4).clamp(120.0, 200.0);
+    final scale = AppScale.of(context);
+    final cardWidth = (screenWidth * 0.36).clamp(110.0, 180.0);
     final cardHeight = cardWidth * 1.5;
     return Container(
       width: cardWidth,
@@ -214,8 +216,8 @@ class MonsterCard extends StatelessWidget {
             child: Transform.rotate(
               angle: pi / 4,
               child: Container(
-                width: 80,
-                height: 80,
+                width: 80 * scale,
+                height: 80 * scale,
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: AppColors.gold.withOpacity(0.3),
@@ -239,7 +241,8 @@ class MonsterCard extends StatelessWidget {
 
   Widget _buildCardFront(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = (screenWidth * 0.4).clamp(120.0, 200.0);
+    final scale = AppScale.of(context);
+    final cardWidth = (screenWidth * 0.36).clamp(110.0, 180.0);
     final cardHeight = cardWidth * 1.5;
 
     return Container(
@@ -268,14 +271,14 @@ class MonsterCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(8 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               monster.name,
-              style: const TextStyle(
-                fontSize: 13,
+              style: TextStyle(
+                fontSize: 12 * scale,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
                 color: AppColors.textPrimary,
@@ -284,26 +287,26 @@ class MonsterCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 4 * scale),
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 child: _buildImage(),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 4 * scale),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('ATK', monster.atk, AppColors.ruby),
-                _buildStat('DEF', monster.def, AppColors.sapphire),
+                _buildStat('ATK', monster.atk, AppColors.ruby, scale),
+                _buildStat('DEF', monster.def, AppColors.sapphire, scale),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 3 * scale),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 2 * scale),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
                 color: AppColors.gold.withOpacity(0.12),
                 border: Border.all(
                   color: AppColors.gold.withOpacity(0.3),
@@ -311,13 +314,13 @@ class MonsterCard extends StatelessWidget {
               ),
               child: Text(
                 monster.specialAbility,
-                style: const TextStyle(
-                  fontSize: 10,
+                style: TextStyle(
+                  fontSize: 9 * scale,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -355,29 +358,29 @@ class MonsterCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStat(String label, int value, Color color) {
+  Widget _buildStat(String label, int value, Color color, double scale) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 2 * scale),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10,
+            style: TextStyle(
+              fontSize: 8 * scale,
               color: Colors.white,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 2 * scale),
           Text(
             '$value',
-            style: const TextStyle(
-              fontSize: 15,
+            style: TextStyle(
+              fontSize: 12 * scale,
               fontWeight: FontWeight.w900,
               color: Colors.white,
             ),

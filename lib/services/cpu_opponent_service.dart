@@ -17,8 +17,24 @@ class CpuOpponentService {
     );
   }
 
-  Future<Monster> generate() async {
-    const prompt = '''
+  Future<Monster> generate({int stage = 1, List<String>? counterAbilities}) async {
+    final String prompt;
+    if (stage >= 2 && counterAbilities != null && counterAbilities.isNotEmpty) {
+      prompt = '''
+カードバトルゲームのモンスターを1体考えてください。
+名前はオリジナルでカッコいいカタカナ。
+
+これはステージ${stage}の対戦相手です。
+相手はこれまで以下の特殊能力を使いました:
+${counterAbilities.asMap().entries.map((e) => '- ステージ${e.key + 1}: 「${e.value}」').join('\n')}
+これら全ての能力に対抗できる、さらに強力なモンスターを考えてください。
+全ての能力を無効化したり上回ったりする特殊能力を20文字以内で考えてください。
+
+以下のJSON形式で返してください。JSONのみを返してください。
+{"name": "モンスター名", "specialAbility": "特殊能力"}
+''';
+    } else {
+      prompt = '''
 カードバトルゲームのモンスターを1体考えてください。
 名前はオリジナルでカッコいいカタカナ。
 特殊能力は20文字以内で、チートレベルのぶっ壊れスキルにしてください。
@@ -26,6 +42,7 @@ class CpuOpponentService {
 以下のJSON形式で返してください。JSONのみを返してください。
 {"name": "モンスター名", "specialAbility": "特殊能力"}
 ''';
+    }
 
     try {
       final response = await _model.generateContent([Content.text(prompt)]);
@@ -43,7 +60,6 @@ class CpuOpponentService {
         specialAbility: json['specialAbility'] as String,
       );
     } catch (_) {
-      // フォールバック
       return Monster(
         name: 'ナゾモンスター',
         atk: _rng.nextInt(100) + 1,

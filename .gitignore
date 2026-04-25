@@ -1,6 +1,10 @@
 # Environment
 .env
 
+# Claude Code (per-user settings)
+.claude/settings.json
+.claude/settings.local.json
+
 # Miscellaneous
 *.class
 *.log

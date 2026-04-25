@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,7 +35,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
     final playerNum = game.playerNumber;
     if (roomCode == null || playerNum == null) return;
 
-    _timeoutTimer = Timer(const Duration(seconds: 60), () {
+    _timeoutTimer = Timer(const Duration(seconds: GameConstants.timeoutSeconds), () {
       _opponentSubscription?.cancel();
       _roomService.deleteRoom(roomCode);
       if (mounted) {
@@ -57,10 +58,14 @@ class _WaitingScreenState extends State<WaitingScreen> {
     final roomCode = game.roomCode!;
     final playerNum = game.playerNumber!;
 
-    final opponent =
+    final result =
         await _roomService.getOpponentMonster(roomCode, playerNum);
-    if (opponent != null && mounted) {
-      await game.setOpponentFromJson(opponent.toJson());
+    if (result != null && mounted) {
+      await game.setOpponentFromJson(
+        result.monster.toJson(),
+        pvpWins: result.pvpWins,
+        pvpTotalMatches: result.pvpTotalMatches,
+      );
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/battle');
       }
@@ -85,16 +90,19 @@ class _WaitingScreenState extends State<WaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = AppScale.of(context);
+
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32),
+              padding: EdgeInsets.symmetric(
+                  horizontal: min(32, screenWidth * 0.08)),
               child: _timedOut
-                  ? _buildTimeoutView()
-                  : _buildWaitingView(),
+                  ? _buildTimeoutView(scale)
+                  : _buildWaitingView(scale),
             ),
           ),
         ),
@@ -102,7 +110,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
     );
   }
 
-  Widget _buildWaitingView() {
+  Widget _buildWaitingView(double scale) {
     final game = context.watch<GameProvider>();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -127,21 +135,21 @@ class _WaitingScreenState extends State<WaitingScreen> {
     );
   }
 
-  Widget _buildTimeoutView() {
+  Widget _buildTimeoutView(double scale) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Icon(
+        Icon(
           Icons.timer_off,
-          size: 64,
+          size: 64 * scale,
           color: AppColors.textSecondary,
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           '相手が離脱しました',
           style: TextStyle(
             color: AppColors.textSecondary,
-            fontSize: 20,
+            fontSize: 20 * scale,
             fontWeight: FontWeight.bold,
           ),
         ),

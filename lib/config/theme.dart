@@ -54,3 +54,16 @@ ThemeData gameTheme() => ThemeData(
         ),
       ),
     );
+
+class GameConstants {
+  static const int maxCpuStages = 3;
+  static const int maxOnlineBattles = 3;
+  static const int timeoutSeconds = 60;
+}
+
+class AppScale {
+  static const double _baseWidth = 393.0;
+  static double of(BuildContext context) {
+    return (MediaQuery.of(context).size.width / _baseWidth).clamp(0.75, 1.2);
+  }
+}

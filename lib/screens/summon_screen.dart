@@ -28,8 +28,9 @@ class _SummonScreenState extends State<SummonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isOnline =
-        context.read<GameProvider>().gameMode == GameMode.online;
+    final game = context.read<GameProvider>();
+    final isOnline = game.gameMode == GameMode.online;
+    final isTowerStage = !isOnline && game.cpuStage >= 2;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,19 +42,19 @@ class _SummonScreenState extends State<SummonScreen> {
       body: GameBackground(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width < 375 ? 16 : 24),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 32),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 12 : 32),
                   const Icon(
                     Icons.auto_awesome,
                     size: 48,
                     color: AppColors.gold,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     'モンスターを生み出せ',
                     style: Theme.of(context)
@@ -64,7 +65,7 @@ class _SummonScreenState extends State<SummonScreen> {
                         ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 16 : 32),
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
@@ -113,7 +114,36 @@ class _SummonScreenState extends State<SummonScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  if (!isOnline)
+                  if (isTowerStage)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        children: [
+                          Text(
+                            'ステージ ${game.cpuStage} / ${GameConstants.maxCpuStages}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '⚠ 相手はあなたの能力を研究しています...',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.ruby,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!isOnline && !isTowerStage)
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(

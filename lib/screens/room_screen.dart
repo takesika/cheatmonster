@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +23,6 @@ class _RoomScreenState extends State<RoomScreen> {
   final _roomService = RoomService();
   final _codeController = TextEditingController();
 
-  // null = mode selection, 'create' = creating, 'join' = joining
   String? _mode;
   String? _roomCode;
   bool _isLoading = false;
@@ -52,7 +52,7 @@ class _RoomScreenState extends State<RoomScreen> {
         _isLoading = false;
       });
 
-      _timeoutTimer = Timer(const Duration(seconds: 60), () {
+      _timeoutTimer = Timer(const Duration(seconds: GameConstants.timeoutSeconds), () {
         _statusSubscription?.cancel();
         _roomService.deleteRoom(code);
         if (mounted) {
@@ -142,12 +142,16 @@ class _RoomScreenState extends State<RoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = AppScale.of(context);
+
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: EdgeInsets.symmetric(
+                  horizontal: min(32, screenWidth * 0.08)),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -171,9 +175,10 @@ class _RoomScreenState extends State<RoomScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  if (_mode == null) _buildModeSelection(),
-                  if (_mode == 'create') _buildCreateMode(),
-                  if (_mode == 'join') _buildJoinMode(),
+                  if (_mode == null) _buildModeSelection(scale),
+                  if (_mode == 'create') _buildCreateMode(scale),
+                  if (_mode == 'join')
+                    _buildJoinMode(scale, screenWidth),
                   const SizedBox(height: 32),
                   TextButton.icon(
                     onPressed: _isLoading ? null : _goBack,
@@ -193,12 +198,12 @@ class _RoomScreenState extends State<RoomScreen> {
     );
   }
 
-  Widget _buildModeSelection() {
+  Widget _buildModeSelection(double scale) {
     return Column(
       children: [
-        const Icon(
+        Icon(
           Icons.people,
-          size: 64,
+          size: 64 * scale,
           color: AppColors.gold,
         ),
         const SizedBox(height: 16),
@@ -212,8 +217,8 @@ class _RoomScreenState extends State<RoomScreen> {
         GradientButton(
           label: '部屋を作る',
           onTap: _createRoom,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 48, vertical: 18),
+          padding: EdgeInsets.symmetric(
+              horizontal: 48 * scale, vertical: 18),
         ),
         const SizedBox(height: 16),
         GradientButton(
@@ -222,14 +227,14 @@ class _RoomScreenState extends State<RoomScreen> {
             _mode = 'join';
             _errorMessage = null;
           }),
-          padding: const EdgeInsets.symmetric(
-              horizontal: 48, vertical: 18),
+          padding: EdgeInsets.symmetric(
+              horizontal: 48 * scale, vertical: 18),
         ),
       ],
     );
   }
 
-  Widget _buildCreateMode() {
+  Widget _buildCreateMode(double scale) {
     if (_isLoading) {
       return const Column(
         children: [
@@ -286,11 +291,11 @@ class _RoomScreenState extends State<RoomScreen> {
               children: [
                 Text(
                   _roomCode ?? '',
-                  style: const TextStyle(
-                    fontSize: 36,
+                  style: TextStyle(
+                    fontSize: 36 * scale,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Courier',
-                    letterSpacing: 8,
+                    letterSpacing: 8 * scale,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -315,7 +320,7 @@ class _RoomScreenState extends State<RoomScreen> {
     );
   }
 
-  Widget _buildJoinMode() {
+  Widget _buildJoinMode(double scale, double screenWidth) {
     return Column(
       children: [
         const Text(
@@ -327,26 +332,26 @@ class _RoomScreenState extends State<RoomScreen> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          width: 240,
+          width: screenWidth * 0.6,
           child: TextField(
             controller: _codeController,
             textCapitalization: TextCapitalization.characters,
             maxLength: 6,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 28,
+            style: TextStyle(
+              fontSize: 28 * scale,
               fontWeight: FontWeight.bold,
               fontFamily: 'Courier',
-              letterSpacing: 8,
+              letterSpacing: 8 * scale,
             ),
             decoration: InputDecoration(
               counterText: '',
               hintText: 'XXXXXX',
               hintStyle: TextStyle(
                 color: Colors.grey.shade300,
-                fontSize: 28,
+                fontSize: 28 * scale,
                 fontFamily: 'Courier',
-                letterSpacing: 8,
+                letterSpacing: 8 * scale,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -366,8 +371,8 @@ class _RoomScreenState extends State<RoomScreen> {
             : GradientButton(
                 label: '参加する',
                 onTap: _joinRoom,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 48, vertical: 18),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 48 * scale, vertical: 18),
               ),
       ],
     );

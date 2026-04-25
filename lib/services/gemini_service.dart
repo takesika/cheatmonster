@@ -75,7 +75,6 @@ JSONのみを返してください。
     final response = await _model.generateContent([Content.text(prompt)]);
     final text = response.text ?? '';
 
-    // Strip markdown code fences if present
     final cleaned = text
         .replaceAll(RegExp(r'```json\s*'), '')
         .replaceAll(RegExp(r'```\s*'), '')
@@ -100,7 +99,6 @@ JSONのみを返してください。
 
       return BattleResult(outcome: outcome, narration: narration);
     } catch (_) {
-      // Fallback: simple stats comparison
       final playerTotal = player.atk + player.def;
       final cpuTotal = opponent.atk + opponent.def;
       BattleOutcome outcome;

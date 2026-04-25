@@ -51,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Center(
                 child: Consumer<GameProvider>(
                   builder: (context, game, _) {
+                    final scale = AppScale.of(context);
                     final remaining = game.remainingBattles;
                     final canPlay = remaining > 0;
 
@@ -71,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               .headlineLarge
                               ?.copyWith(
                                 color: AppColors.textPrimary,
-                                fontSize: 44,
+                                fontSize: 44 * scale,
                                 height: 1.1,
                                 letterSpacing: 3,
                               ),
@@ -126,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GradientButton(
                             label: 'CPU対戦',
                             fontSize: 19,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 52, vertical: 17),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 52 * scale, vertical: 17),
                             onTap: canPlay
                                 ? () {
                                     game.reset();
@@ -146,8 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             AppColors.amethystLight,
                           ],
                           shadowColor: AppColors.amethyst,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 52, vertical: 17),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 52 * scale, vertical: 17),
                           onTap: () {
                             game.reset();
                             game.setGameMode(GameMode.online);
