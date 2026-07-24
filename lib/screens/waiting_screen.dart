@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +6,10 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/game_provider.dart';
 import '../services/room_service.dart';
+import '../widgets/arcane_circle.dart';
+import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
+import '../widgets/gradient_button.dart';
 import '../widgets/monster_card.dart';
 
 class WaitingScreen extends StatefulWidget {
@@ -35,13 +37,14 @@ class _WaitingScreenState extends State<WaitingScreen> {
     final playerNum = game.playerNumber;
     if (roomCode == null || playerNum == null) return;
 
-    _timeoutTimer = Timer(const Duration(seconds: GameConstants.timeoutSeconds), () {
-      _opponentSubscription?.cancel();
-      _roomService.deleteRoom(roomCode);
-      if (mounted) {
-        setState(() => _timedOut = true);
-      }
-    });
+    _timeoutTimer = Timer(
+      const Duration(seconds: GameConstants.timeoutSeconds),
+      () {
+        _opponentSubscription?.cancel();
+        _roomService.deleteRoom(roomCode);
+        if (mounted) setState(() => _timedOut = true);
+      },
+    );
 
     _opponentSubscription =
         _roomService.listenForOpponent(roomCode, playerNum).listen((ready) {
@@ -61,8 +64,8 @@ class _WaitingScreenState extends State<WaitingScreen> {
     final result =
         await _roomService.getOpponentMonster(roomCode, playerNum);
     if (result != null && mounted) {
-      await game.setOpponentFromJson(
-        result.monster.toJson(),
+      await game.setOpponentMonster(
+        result.monster,
         pvpWins: result.pvpWins,
         pvpTotalMatches: result.pvpTotalMatches,
       );
@@ -90,83 +93,137 @@ class _WaitingScreenState extends State<WaitingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scale = AppScale.of(context);
-
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: min(32, screenWidth * 0.08)),
-              child: _timedOut
-                  ? _buildTimeoutView(scale)
-                  : _buildWaitingView(scale),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _timedOut ? _buildTimeoutView() : _buildWaitingView(),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWaitingView(double scale) {
+  Widget _buildWaitingView() {
     final game = context.watch<GameProvider>();
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
       children: [
-        if (game.playerMonster != null)
-          MonsterCard(
-            monster: game.playerMonster!,
-            isLoading: game.isGeneratingImage,
+        const Positioned.fill(
+          child: Center(
+            child: ArcaneCircle(size: 320, opacity: 0.18),
           ),
-        const SizedBox(height: 32),
-        const CircularProgressIndicator(color: AppColors.gold),
-        const SizedBox(height: 16),
-        const Text(
-          '相手の召喚を待っています...',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: ConstrainedBox(
+                constraints:
+                    BoxConstraints(minHeight: constraints.maxHeight - 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      children: [
+                        const FleurDivider(small: true),
+                        const SizedBox(height: 14),
+                        ShaderMask(
+                          shaderCallback: (rect) => const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              AppColors.goldLight,
+                              AppColors.gold,
+                              AppColors.goldDeep,
+                            ],
+                          ).createShader(rect),
+                          child: const Text(
+                            '相手を待っています',
+                            style: TextStyle(
+                              fontFamily: AppFonts.mincho,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 4,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: game.playerMonster != null
+                          ? MonsterCard(
+                              monster: game.playerMonster!,
+                              isLoading: game.isGeneratingImage,
+                              scale: 0.85,
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.goldLight,
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          Text(
+                            '相手のモンスター召喚を待っています...',
+                            style: TextStyle(
+                              fontFamily: AppFonts.mincho,
+                              color: AppColors.inkSoft,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
   }
 
-  Widget _buildTimeoutView(double scale) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.timer_off,
-          size: 64 * scale,
-          color: AppColors.textSecondary,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          '相手が離脱しました',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 20 * scale,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 32),
-        TextButton.icon(
-          onPressed: _goHome,
-          icon: const Icon(Icons.home),
-          label: const Text('ホームへ戻る'),
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.sapphire,
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+  Widget _buildTimeoutView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.access_time,
+              size: 56, color: AppColors.inkSoft),
+          const SizedBox(height: 16),
+          const Text(
+            '相手が見つかりませんでした',
+            style: TextStyle(
+              fontFamily: AppFonts.mincho,
+              color: AppColors.goldLight,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 28),
+          GradientButton(
+            label: 'ホームへ',
+            variant: CmButtonVariant.gold,
+            fontSize: 14,
+            letterSpacing: 4,
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+            onTap: _goHome,
+          ),
+        ],
+      ),
     );
   }
 }

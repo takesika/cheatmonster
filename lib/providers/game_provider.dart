@@ -107,14 +107,22 @@ class GameProvider extends ChangeNotifier {
     await _generatePlayerImage(name, specialAbility);
   }
 
-  Future<void> setOpponentFromJson(
-    Map<String, dynamic> json, {
+  Future<void> setOpponentMonster(
+    Monster monster, {
     int pvpWins = 0,
     int pvpTotalMatches = 0,
   }) async {
-    cpuMonster = Monster.fromJson(json);
+    cpuMonster = monster;
     opponentPvpWins = pvpWins;
     opponentPvpTotalMatches = pvpTotalMatches;
+
+    if (cpuMonster!.imageBytes != null) {
+      isGeneratingCpuImage = false;
+      notifyListeners();
+      return;
+    }
+
+    // fallback: opponent didn't upload an image — generate locally
     isGeneratingCpuImage = true;
     notifyListeners();
 
@@ -139,6 +147,7 @@ class GameProvider extends ChangeNotifier {
       playerMonster!,
       pvpWins: pvpWins,
       pvpTotalMatches: pvpTotalMatches,
+      imageBytes: playerMonster!.imageBytes,
     );
   }
 

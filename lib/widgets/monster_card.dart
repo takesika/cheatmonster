@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
@@ -9,22 +7,48 @@ class MonsterCard extends StatelessWidget {
   final Monster monster;
   final bool showBack;
   final bool isLoading;
+  final double scale;
+  final bool selected;
+  final bool faded;
 
   const MonsterCard({
     super.key,
     required this.monster,
     this.showBack = false,
     this.isLoading = false,
+    this.scale = 1.0,
+    this.selected = false,
+    this.faded = false,
   });
+
+  static const double baseW = 200;
+  static const double baseH = 300;
 
   @override
   Widget build(BuildContext context) {
-    if (showBack) {
-      return _buildCardBack(context);
-    }
+    if (showBack) return _buildBack();
     return GestureDetector(
       onTap: () => _showExpandedCard(context),
-      child: _buildCardFront(context),
+      child: AnimatedScale(
+        scale: selected ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 250),
+        child: AnimatedOpacity(
+          opacity: faded ? 0.65 : 1.0,
+          duration: const Duration(milliseconds: 250),
+          child: ColorFiltered(
+            colorFilter: faded
+                ? const ColorFilter.matrix(<double>[
+                    0.5, 0.5, 0.5, 0, 0,
+                    0.5, 0.5, 0.5, 0, 0,
+                    0.5, 0.5, 0.5, 0, 0,
+                    0, 0, 0, 1, 0,
+                  ])
+                : const ColorFilter.mode(
+                    Colors.transparent, BlendMode.multiply),
+            child: _buildFront(scale),
+          ),
+        ),
+      ),
     );
   }
 
@@ -38,7 +62,7 @@ class MonsterCard extends StatelessWidget {
           body: Center(
             child: GestureDetector(
               onTap: () {},
-              child: _buildExpandedCard(context),
+              child: _buildFront(1.5),
             ),
           ),
         ),
@@ -46,286 +70,139 @@ class MonsterCard extends StatelessWidget {
     );
   }
 
-  Widget _buildExpandedCard(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scale = AppScale.of(context);
-    final cardWidth = screenWidth * 0.8;
-    final cardHeight = cardWidth * 1.4;
-
+  Widget _buildFront(double s) {
+    final w = baseW * s;
+    final h = baseH * s;
     return Container(
-      width: cardWidth,
-      height: cardHeight,
+      width: w,
+      height: h,
+      padding: EdgeInsets.all(7 * s),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: AppColors.cardWhite,
-        border: Border.all(color: AppColors.gold, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.gold.withOpacity(0.3),
-            blurRadius: 40,
-            spreadRadius: 8,
-          ),
-          BoxShadow(
-            color: AppColors.sapphire.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(20 * scale),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              monster.name,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: _buildImage(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatLarge('ATK', monster.atk, AppColors.ruby, scale),
-                _buildStatLarge('DEF', monster.def, AppColors.sapphire, scale),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: AppColors.gold.withOpacity(0.12),
-                border: Border.all(
-                  color: AppColors.gold.withOpacity(0.3),
-                ),
-              ),
-              child: Text(
-                monster.specialAbility,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatLarge(String label, int value, Color color, double scale) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 28 * scale,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardBack(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scale = AppScale.of(context);
-    final cardWidth = (screenWidth * 0.36).clamp(110.0, 180.0);
-    final cardHeight = cardWidth * 1.5;
-    return Container(
-      width: cardWidth,
-      height: cardHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
         gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.sapphire, AppColors.textPrimary],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.parchmentLight, AppColors.parchmentMid],
         ),
-        border: Border.all(color: AppColors.gold, width: 2.5),
+        borderRadius: BorderRadius.circular(5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.sapphire.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppColors.gold.withOpacity(0.15),
-            blurRadius: 12,
-            spreadRadius: -2,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.45),
+            blurRadius: 24 * s,
+            offset: Offset(0, 10 * s),
           ),
         ],
+        border: Border.all(color: Colors.black.withOpacity(0.3), width: 0.5),
       ),
       child: Stack(
         children: [
-          for (final pos in [
-            const Alignment(-1, -1),
-            const Alignment(1, -1),
-            const Alignment(-1, 1),
-            const Alignment(1, 1),
-          ])
-            Positioned(
-              top: pos.y < 0 ? 12 : null,
-              bottom: pos.y > 0 ? 12 : null,
-              left: pos.x < 0 ? 12 : null,
-              right: pos.x > 0 ? 12 : null,
-              child: Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.gold.withOpacity(0.4),
-                ),
-              ),
-            ),
-          Center(
-            child: Transform.rotate(
-              angle: pi / 4,
-              child: Container(
-                width: 80 * scale,
-                height: 80 * scale,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppColors.gold.withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 36,
-                    color: AppColors.goldLight,
-                  ),
-                ),
-              ),
-            ),
+          // gold filigree multi-border (drawn via custom paint for nested look)
+          Positioned.fill(
+            child: CustomPaint(painter: _CardFramePainter()),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardFront(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final scale = AppScale.of(context);
-    final cardWidth = (screenWidth * 0.36).clamp(110.0, 180.0);
-    final cardHeight = cardWidth * 1.5;
-
-    return Container(
-      width: cardWidth,
-      height: cardHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: AppColors.cardWhite,
-        border: Border.all(
-          color: AppColors.gold,
-          width: 2.5,
-          strokeAlign: BorderSide.strokeAlignInside,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.sapphire.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: AppColors.gold.withOpacity(0.15),
-            blurRadius: 12,
-            spreadRadius: -2,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(8 * scale),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              monster.name,
-              style: TextStyle(
-                fontSize: 12 * scale,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 4 * scale),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildImage(),
-              ),
-            ),
-            SizedBox(height: 4 * scale),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Padding(
+            padding: EdgeInsets.all(5 * s),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildStat('ATK', monster.atk, AppColors.ruby, scale),
-                _buildStat('DEF', monster.def, AppColors.sapphire, scale),
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 3 * s),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.goldDeep, width: 0.5),
+                    ),
+                  ),
+                  child: Text(
+                    monster.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppFonts.mincho,
+                      fontSize: 12 * s,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1428),
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 5 * s),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border:
+                          Border.all(color: const Color(0xFF5A3E18), width: 1.5),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildImage(),
+                        Positioned(
+                          right: 4,
+                          bottom: 4,
+                          child: Container(
+                            width: 16 * s,
+                            height: 16 * s,
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.parchmentLight.withOpacity(0.7),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: const Color(0xFFC8364A), width: 1),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '✦',
+                              style: TextStyle(
+                                fontFamily: AppFonts.cinzel,
+                                color: const Color(0xFFC8364A),
+                                fontSize: 8 * s,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 5 * s),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _StatBadge(label: 'ATK', value: monster.atk, accent: true, scale: s),
+                    _StatBadge(label: 'DEF', value: monster.def, scale: s),
+                  ],
+                ),
+                SizedBox(height: 4 * s),
+                Container(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 6 * s, vertical: 5 * s),
+                  decoration: BoxDecoration(
+                    color: AppColors.parchmentLight.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(2),
+                    border: Border.all(color: AppColors.goldDeep, width: 0.5),
+                  ),
+                  child: Text(
+                    monster.specialAbility,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppFonts.mincho,
+                      fontSize: 10 * s,
+                      fontWeight: FontWeight.w600,
+                      fontStyle: FontStyle.italic,
+                      color: const Color(0xFF3A2C14),
+                      height: 1.25,
+                    ),
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 3 * scale),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 2 * scale),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                color: AppColors.gold.withOpacity(0.12),
-                border: Border.all(
-                  color: AppColors.gold.withOpacity(0.3),
-                ),
-              ),
-              child: Text(
-                monster.specialAbility,
-                style: TextStyle(
-                  fontSize: 9 * scale,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -333,9 +210,16 @@ class MonsterCard extends StatelessWidget {
   Widget _buildImage() {
     if (isLoading) {
       return Container(
-        color: const Color(0xFFF0EDE8),
+        color: AppColors.parchmentMid,
         child: const Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.goldDeep,
+            ),
+          ),
         ),
       );
     }
@@ -343,27 +227,117 @@ class MonsterCard extends StatelessWidget {
       return Image.memory(
         monster.imageBytes!,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+        errorBuilder: (_, __, ___) => _placeholder(),
       );
     }
-    return _buildPlaceholderImage();
+    return _placeholder();
   }
 
-  Widget _buildPlaceholderImage() {
+  Widget _placeholder() {
     return Container(
-      color: const Color(0xFFF0EDE8),
+      color: AppColors.parchmentMid,
       child: const Center(
-        child: Icon(Icons.pets, size: 48, color: Color(0xFFBDBDBD)),
+        child: Icon(Icons.pets, size: 44, color: AppColors.goldDeep),
       ),
     );
   }
 
-  Widget _buildStat(String label, int value, Color color, double scale) {
+  Widget _buildBack() {
+    final w = baseW * scale;
+    final h = baseH * scale;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6 * scale, vertical: 2 * scale),
+      width: w,
+      height: h,
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1840), Color(0xFF0A0820)],
+        ),
+        borderRadius: BorderRadius.circular(5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 24 * scale,
+            offset: Offset(0, 10 * scale),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: CustomPaint(painter: _CardBackFramePainter()),
+          ),
+          Center(
+            child: Container(
+              width: 70 * scale,
+              height: 70 * scale,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  colors: [Color(0xFF2A2060), Color(0xFF0A0820)],
+                ),
+                border: Border.all(color: AppColors.gold, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.goldGlow.withOpacity(0.4),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '✦',
+                style: TextStyle(
+                  fontFamily: AppFonts.cinzel,
+                  color: AppColors.goldLight,
+                  fontSize: 30 * scale,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatBadge extends StatelessWidget {
+  final String label;
+  final int value;
+  final bool accent;
+  final double scale;
+  const _StatBadge({
+    required this.label,
+    required this.value,
+    this.accent = false,
+    this.scale = 1.0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 7 * scale, vertical: 3 * scale),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: accent
+              ? const [Color(0xFFD8485A), Color(0xFF8B1C2C)]
+              : const [Color(0xFF1D2A52), Color(0xFF0D1530)],
+        ),
+        border: Border.all(
+          color: accent ? const Color(0xFF5A0E1A) : const Color(0xFF2A3866),
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(3),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x4D000000),
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -371,22 +345,92 @@ class MonsterCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
+              fontFamily: AppFonts.cinzel,
               fontSize: 8 * scale,
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFFF5D68F),
+              letterSpacing: 1.2,
             ),
           ),
-          SizedBox(width: 2 * scale),
+          SizedBox(width: 4 * scale),
           Text(
             '$value',
             style: TextStyle(
-              fontSize: 12 * scale,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
+              fontFamily: AppFonts.cinzel,
+              fontSize: 14 * scale,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFFF5D68F),
+              fontFeatures: const [FontFeature.tabularFigures()],
+              height: 1,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _CardFramePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outer = Rect.fromLTWH(0, 0, size.width, size.height);
+    final r = const Radius.circular(5);
+
+    // gold-deep outer frame
+    final p1 = Paint()
+      ..color = AppColors.goldDeep
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRRect(RRect.fromRectAndRadius(outer.deflate(0.75), r), p1);
+
+    // bright gold inner frame
+    final p2 = Paint()
+      ..color = AppColors.gold
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(outer.deflate(4.0), const Radius.circular(3)),
+        p2);
+
+    // corner fleurs
+    final fleurPaint = Paint()..color = const Color(0xFF7A5520);
+    const off = 6.0;
+    void drawFleur(Offset c) {
+      canvas.drawCircle(c, 1.2, fleurPaint);
+    }
+
+    drawFleur(Offset(off, off));
+    drawFleur(Offset(size.width - off, off));
+    drawFleur(Offset(off, size.height - off));
+    drawFleur(Offset(size.width - off, size.height - off));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _CardBackFramePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outer = Rect.fromLTWH(0, 0, size.width, size.height);
+    final r = const Radius.circular(5);
+
+    final p1 = Paint()
+      ..color = AppColors.goldDeep
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRRect(RRect.fromRectAndRadius(outer.deflate(0.75), r), p1);
+
+    final p2 = Paint()
+      ..color = AppColors.gold
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(outer.deflate(4.0), const Radius.circular(3)),
+      p2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

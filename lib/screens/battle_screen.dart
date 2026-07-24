@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,9 +8,11 @@ import '../config/theme.dart';
 import '../models/battle_result.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
+import '../widgets/arcane_circle.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/monster_card.dart';
+import '../widgets/wax_seal.dart';
 
 class BattleScreen extends StatefulWidget {
   const BattleScreen({super.key});
@@ -41,7 +44,7 @@ class _BattleScreenState extends State<BattleScreen>
       CurvedAnimation(parent: _revealController, curve: Curves.easeInOut),
     );
 
-    Future.delayed(const Duration(milliseconds: 1000), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         _revealController.forward().then((_) {
           if (mounted) setState(() => _phase = BattlePhase.ready);
@@ -60,130 +63,32 @@ class _BattleScreenState extends State<BattleScreen>
 
   @override
   Widget build(BuildContext context) {
-    final scale = AppScale.of(context);
-
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
           child: Consumer<GameProvider>(
             builder: (context, game, _) {
-              if (game.playerMonster == null ||
-                  game.cpuMonster == null) {
+              if (game.playerMonster == null || game.cpuMonster == null) {
                 return const Center(
-                    child: CircularProgressIndicator());
+                  child: CircularProgressIndicator(color: AppColors.gold),
+                );
               }
 
-              if (game.battleResult != null &&
-                  _phase != BattlePhase.result) {
+              if (game.battleResult != null && _phase != BattlePhase.result) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() => _phase = BattlePhase.result);
-                  }
+                  if (mounted) setState(() => _phase = BattlePhase.result);
                 });
               }
-              if (game.isBattling &&
-                  _phase != BattlePhase.battling) {
+              if (game.isBattling && _phase != BattlePhase.battling) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() => _phase = BattlePhase.battling);
-                  }
+                  if (mounted) setState(() => _phase = BattlePhase.battling);
                 });
               }
 
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.of(context).size.height -
-                          MediaQuery.of(context).padding.top -
-                          MediaQuery.of(context).padding.bottom -
-                          32,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 16),
-                        Text(
-                          _phaseTitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                  color: AppColors.textPrimary),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'VS',
-                          style: TextStyle(
-                            fontSize: 32 * scale,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.gold,
-                            shadows: [
-                              Shadow(
-                                color: AppColors.gold
-                                    .withOpacity(0.4),
-                                blurRadius: 12,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceEvenly,
-                          children: [
-                            MonsterCard(
-                                monster: game.playerMonster!),
-                            Column(
-                              children: [
-                                AnimatedBuilder(
-                                  animation: _flipAnim,
-                                  builder: (context, _) {
-                                    final showFront =
-                                        _flipAnim.value > 0.5;
-                                    return Transform(
-                                      alignment: Alignment.center,
-                                      transform: Matrix4.identity()
-                                        ..setEntry(3, 2, 0.001)
-                                        ..rotateY(
-                                            (1 - _flipAnim.value) *
-                                                3.14159),
-                                      child: showFront
-                                          ? MonsterCard(
-                                              monster: game.cpuMonster!,
-                                              isLoading: game
-                                                  .isGeneratingCpuImage)
-                                          : MonsterCard(
-                                              monster: game.cpuMonster!,
-                                              showBack: true),
-                                    );
-                                  },
-                                ),
-                                if (game.gameMode == GameMode.online &&
-                                    game.opponentPvpTotalMatches > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(
-                                      '相手戦績: ${game.opponentPvpWins}勝 / ${game.opponentPvpTotalMatches}戦',
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        _buildBottomArea(context, game, scale),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              );
+              if (_phase == BattlePhase.result) {
+                return _buildResultLayout(context, game);
+              }
+              return _buildArenaLayout(context, game);
             },
           ),
         ),
@@ -191,183 +96,229 @@ class _BattleScreenState extends State<BattleScreen>
     );
   }
 
-  String get _phaseTitle {
-    switch (_phase) {
-      case BattlePhase.reveal:
-        return '対戦相手が現れた...';
-      case BattlePhase.ready:
-        return 'バトル準備完了！';
-      case BattlePhase.battling:
-        return 'ジャッジ中...';
-      case BattlePhase.result:
-        return '結果発表！';
-    }
+  Widget _buildArenaLayout(BuildContext context, GameProvider game) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+            child: ShaderMask(
+              shaderCallback: (rect) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.goldLight,
+                  AppColors.gold,
+                  AppColors.goldDeep,
+                ],
+              ).createShader(rect),
+              child: Text(
+                game.gameMode == GameMode.cpu
+                    ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
+                    : 'BATTLE ${game.onlineBattleCount} / ${GameConstants.maxOnlineBattles}',
+                style: const TextStyle(
+                  fontFamily: AppFonts.cinzel,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 4,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+
+          // arena (fixed height so it can sit inside scroll view)
+          SizedBox(
+            height: 480,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Positioned.fill(
+                    child: Center(
+                      child: ArcaneCircle(size: 320, opacity: 0.18),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Center(child: _TaiSymbol()),
+                  ),
+
+                  // player card top-left
+                  Positioned(
+                    top: 20,
+                    left: 12,
+                    child: _CardWithLabel(
+                      label: 'YOU',
+                      labelColor: AppColors.panel,
+                      rotation: -0.09,
+                      child: MonsterCard(
+                        monster: game.playerMonster!,
+                        scale: 0.78,
+                        selected: true,
+                      ),
+                    ),
+                  ),
+
+                  // enemy card bottom-right with flip
+                  Positioned(
+                    bottom: 20,
+                    right: 12,
+                    child: AnimatedBuilder(
+                      animation: _flipAnim,
+                      builder: (context, _) {
+                        final showFront = _flipAnim.value > 0.5;
+                        return Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateY((1 - _flipAnim.value) * pi),
+                          child: _CardWithLabel(
+                            label: 'ENEMY',
+                            labelColor: AppColors.seal,
+                            rotation: 0.09,
+                            child: showFront
+                                ? MonsterCard(
+                                    monster: game.cpuMonster!,
+                                    scale: 0.78,
+                                    isLoading: game.isGeneratingCpuImage,
+                                  )
+                                : MonsterCard(
+                                    monster: game.cpuMonster!,
+                                    scale: 0.78,
+                                    showBack: true,
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: _bottomCta(context, game),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildBottomArea(BuildContext context, GameProvider game, double scale) {
-    switch (_phase) {
-      case BattlePhase.reveal:
-        return const SizedBox(height: 48);
-      case BattlePhase.ready:
-        final isOnline = game.gameMode == GameMode.online;
-        final isPlayer2 = isOnline && game.playerNumber == 2;
-
-        if (isPlayer2) {
-          if (!game.isBattling && game.battleResult == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              game.startOnlineBattle();
-            });
-          }
-          return const Column(
-            children: [
-              CircularProgressIndicator(color: AppColors.gold),
-              SizedBox(height: 12),
-              Text('ジャッジを待機中...',
-                  style: TextStyle(color: AppColors.textSecondary)),
-            ],
-          );
+  Widget _bottomCta(BuildContext context, GameProvider game) {
+    if (_phase == BattlePhase.reveal) {
+      return const _OracleSpinner(text: '対戦相手が現れた...');
+    }
+    if (_phase == BattlePhase.battling) {
+      return const _OracleSpinner(text: 'ジャッジ中...');
+    }
+    // ready phase
+    final isOnline = game.gameMode == GameMode.online;
+    final isPlayer2 = isOnline && game.playerNumber == 2;
+    if (isPlayer2) {
+      if (!game.isBattling && game.battleResult == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          game.startOnlineBattle();
+        });
+      }
+      return const _OracleSpinner(text: '相手の操作を待機中...');
+    }
+    return GradientButton(
+      label: '開戦',
+      variant: CmButtonVariant.crimson,
+      fontSize: 18,
+      letterSpacing: 8,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      fullWidth: true,
+      onTap: () {
+        if (isOnline) {
+          game.startOnlineBattle();
+        } else {
+          game.startBattle();
         }
-
-        return GradientButton(
-          label: '戦う！',
-          fontSize: 22 * scale,
-          letterSpacing: 3,
-          padding: EdgeInsets.symmetric(
-              horizontal: 48 * scale, vertical: 16 * scale),
-          gradientColors: const [AppColors.ruby, Color(0xFFE74C3C)],
-          shadowColor: AppColors.ruby,
-          onTap: () {
-            if (isOnline) {
-              game.startOnlineBattle();
-            } else {
-              game.startBattle();
-            }
-          },
-        );
-      case BattlePhase.battling:
-        return const Column(
-          children: [
-            CircularProgressIndicator(color: AppColors.gold),
-            SizedBox(height: 12),
-            Text('LLMが戦闘を審判中...',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ],
-        );
-      case BattlePhase.result:
-        return _buildResult(context, game, scale);
-    }
+      },
+    );
   }
 
-  Widget _buildResult(BuildContext context, GameProvider game, double scale) {
+  Widget _buildResultLayout(BuildContext context, GameProvider game) {
     final result = game.battleResult!;
     final isOnline = game.gameMode == GameMode.online;
-
-    final displayOutcome = result.outcome;
-
-    final outcomeText = switch (displayOutcome) {
-      BattleOutcome.win => 'WIN!',
-      BattleOutcome.lose => 'LOSE...',
-      BattleOutcome.draw => 'DRAW',
-    };
-
-    final isWin = displayOutcome == BattleOutcome.win;
-    final outcomeColor = switch (displayOutcome) {
-      BattleOutcome.win => AppColors.gold,
-      BattleOutcome.lose => const Color(0xFF7B8794),
-      BattleOutcome.draw => const Color(0xFF9E9E9E),
-    };
-
     final isCpu = game.gameMode == GameMode.cpu;
+    final outcome = result.outcome;
+    final isWin = outcome == BattleOutcome.win;
+    final isDraw = outcome == BattleOutcome.draw;
+    final outcomeLabel = isDraw ? 'DRAW' : (isWin ? 'WIN' : 'LOSE');
+    final sealLabel = isDraw ? '和' : (isWin ? '勝' : '敗');
 
-    return Column(
-      children: [
-        if (isOnline)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              '${game.onlineBattleCount} / ${GameConstants.maxOnlineBattles} 戦',
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        children: [
+          ShaderMask(
+            shaderCallback: (rect) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.goldLight,
+                AppColors.gold,
+                AppColors.goldDeep,
+              ],
+            ).createShader(rect),
+            child: const Text(
+              '結果',
               style: TextStyle(
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                fontFamily: AppFonts.mincho,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 6,
+                color: Colors.white,
               ),
             ),
           ),
-        if (isCpu)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              'ステージ ${game.cpuStage} / ${GameConstants.maxCpuStages}',
-              style: TextStyle(
-                fontSize: 16 * scale,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+          const SizedBox(height: 14),
+          Expanded(
+            child: SingleChildScrollView(
+              child: _ParchmentResultPanel(
+                outcomeLabel: outcomeLabel,
+                sealLabel: sealLabel,
+                player: game.playerMonster!,
+                enemy: game.cpuMonster!,
+                playerFaded: !isWin && !isDraw,
+                enemyFaded: isWin,
+                narration: result.narration,
+                stageInfo: isCpu
+                    ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
+                    : isOnline
+                        ? 'BATTLE ${game.onlineBattleCount} / ${GameConstants.maxOnlineBattles}'
+                        : null,
               ),
             ),
           ),
-        Text(
-          outcomeText,
-          style: TextStyle(
-            fontSize: 36 * scale,
-            fontWeight: FontWeight.bold,
-            color: outcomeColor,
-            letterSpacing: 4,
-            shadows: isWin
-                ? [
-                    Shadow(
-                      color: AppColors.gold.withOpacity(0.5),
-                      blurRadius: 16,
-                    ),
-                  ]
-                : null,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            color: Colors.white,
-            border: const Border(
-              left: BorderSide(color: AppColors.gold, width: 3),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Text(
-            result.narration,
-            style:
-                const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (isOnline)
-          _buildOnlineButtons(context, game, scale)
-        else
-          _buildCpuButtons(context, game, displayOutcome),
-      ],
+          const SizedBox(height: 12),
+          if (isOnline)
+            _buildOnlineButtons(context, game)
+          else
+            _buildCpuButtons(context, game, outcome),
+        ],
+      ),
     );
   }
 
   void _handleContinue(GameProvider game) {
     setState(() => _waitingForOpponentChoice = true);
-
     game.setContinue();
 
-    _timeoutTimer = Timer(const Duration(seconds: GameConstants.timeoutSeconds), () {
+    _timeoutTimer = Timer(const Duration(seconds: GameConstants.timeoutSeconds),
+        () {
       _continueStatusSubscription?.cancel();
       if (!mounted) return;
       _goHomeWithMessage(game, '相手の応答がありませんでした');
     });
 
-    _continueStatusSubscription =
-        game.listenForContinueStatus().listen(
+    _continueStatusSubscription = game.listenForContinueStatus().listen(
       (status) async {
         if (!mounted) return;
         if (status == 'continue') {
@@ -414,10 +365,11 @@ class _BattleScreenState extends State<BattleScreen>
       if (game.cpuStage < GameConstants.maxCpuStages) {
         return GradientButton(
           label: '次のステージへ',
-          fontSize: 18,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-          gradientColors: const [AppColors.gold, AppColors.goldLight],
-          shadowColor: AppColors.gold,
+          variant: CmButtonVariant.crimson,
+          fontSize: 14,
+          letterSpacing: 4,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          fullWidth: true,
           onTap: () {
             game.resetForNextCpuStage();
             if (context.mounted) {
@@ -429,28 +381,24 @@ class _BattleScreenState extends State<BattleScreen>
       } else {
         return Column(
           children: [
-            Text(
-              '全ステージクリア！',
+            const Text(
+              '全ステージクリア',
               style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.gold,
-                shadows: [
-                  Shadow(
-                    color: AppColors.gold.withOpacity(0.5),
-                    blurRadius: 16,
-                  ),
-                ],
+                fontFamily: AppFonts.mincho,
+                color: AppColors.goldLight,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 4,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             GradientButton(
               label: 'ホームへ',
-              fontSize: 18,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-              gradientColors: const [AppColors.gold, AppColors.goldLight],
-              shadowColor: AppColors.gold,
+              variant: CmButtonVariant.gold,
+              fontSize: 14,
+              letterSpacing: 4,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              fullWidth: true,
               onTap: () {
                 game.reset();
                 if (context.mounted) {
@@ -462,66 +410,311 @@ class _BattleScreenState extends State<BattleScreen>
           ],
         );
       }
-    } else {
-      return GradientButton(
-        label: 'ホームへ戻る',
-        fontSize: 18,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-        onTap: () {
-          game.reset();
-          if (context.mounted) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, '/', (route) => false);
-          }
-        },
-      );
     }
-  }
-
-  Widget _buildOnlineButtons(
-      BuildContext context, GameProvider game, double scale) {
-    if (_waitingForOpponentChoice) {
-      return const Column(
-        children: [
-          CircularProgressIndicator(color: AppColors.gold),
-          SizedBox(height: 12),
-          Text(
-            '相手の選択を待っています...',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-        ],
-      );
-    }
-
-    if (game.onlineBattleCount >= GameConstants.maxOnlineBattles) {
-      return GradientButton(
-        label: '終わる',
-        fontSize: 18,
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-        onTap: () => _handleQuit(game),
-      );
-    }
-
-    return Column(
+    return Row(
       children: [
-        GradientButton(
-          label: '続行',
-          fontSize: 18,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-          onTap: () => _handleContinue(game),
-        ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () => _handleQuit(game),
-          child: const Text(
-            '終わる',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 16,
-            ),
+        Expanded(
+          child: GradientButton(
+            label: 'ホームへ',
+            variant: CmButtonVariant.goldOutline,
+            fontSize: 12,
+            letterSpacing: 4,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            fullWidth: true,
+            onTap: () {
+              game.reset();
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                    context, '/', (route) => false);
+              }
+            },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildOnlineButtons(BuildContext context, GameProvider game) {
+    if (_waitingForOpponentChoice) {
+      return const _OracleSpinner(text: '相手の選択を待っています...');
+    }
+    if (game.onlineBattleCount >= GameConstants.maxOnlineBattles) {
+      return GradientButton(
+        label: '終わる',
+        variant: CmButtonVariant.gold,
+        fontSize: 14,
+        letterSpacing: 4,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        fullWidth: true,
+        onTap: () => _handleQuit(game),
+      );
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: GradientButton(
+            label: '終わる',
+            variant: CmButtonVariant.goldOutline,
+            fontSize: 12,
+            letterSpacing: 4,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            fullWidth: true,
+            onTap: () => _handleQuit(game),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 2,
+          child: GradientButton(
+            label: '続行',
+            variant: CmButtonVariant.crimson,
+            fontSize: 14,
+            letterSpacing: 4,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            fullWidth: true,
+            onTap: () => _handleContinue(game),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CardWithLabel extends StatelessWidget {
+  final String label;
+  final Color labelColor;
+  final double rotation;
+  final Widget child;
+  const _CardWithLabel({
+    required this.label,
+    required this.labelColor,
+    required this.rotation,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: rotation,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          Positioned(
+            top: -14,
+            left: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: labelColor.withOpacity(0.9),
+                border: Border.all(color: AppColors.gold, width: 0.5),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: AppFonts.cinzel,
+                  color: AppColors.goldLight,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaiSymbol extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (rect) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          AppColors.goldLight,
+          AppColors.seal,
+          AppColors.sealDeep,
+        ],
+        stops: [0.0, 0.6, 1.0],
+      ).createShader(rect),
+      child: Text(
+        'VS',
+        style: TextStyle(
+          fontFamily: AppFonts.cinzel,
+          fontSize: 140,
+          fontWeight: FontWeight.w900,
+          height: 1,
+          letterSpacing: 4,
+          color: Colors.white,
+          shadows: [
+            Shadow(
+              color: Colors.black.withOpacity(0.5),
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OracleSpinner extends StatelessWidget {
+  final String text;
+  const _OracleSpinner({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(
+          width: 26,
+          height: 26,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.goldLight,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          text,
+          style: const TextStyle(
+            fontFamily: AppFonts.mincho,
+            color: AppColors.inkSoft,
+            letterSpacing: 4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ParchmentResultPanel extends StatelessWidget {
+  final String outcomeLabel;
+  final String sealLabel;
+  final dynamic player;
+  final dynamic enemy;
+  final bool playerFaded;
+  final bool enemyFaded;
+  final String narration;
+  final String? stageInfo;
+
+  const _ParchmentResultPanel({
+    required this.outcomeLabel,
+    required this.sealLabel,
+    required this.player,
+    required this.enemy,
+    required this.playerFaded,
+    required this.enemyFaded,
+    required this.narration,
+    this.stageInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF0E2C0), Color(0xFFD8C298)],
+        ),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: AppColors.goldDeep),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.45),
+            blurRadius: 22,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      outcomeLabel,
+                      style: const TextStyle(
+                        fontFamily: AppFonts.cinzel,
+                        color: AppColors.sealDeep,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    if (stageInfo != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        stageInfo!,
+                        style: const TextStyle(
+                          fontFamily: AppFonts.cinzel,
+                          color: AppColors.inkSoftDark,
+                          fontSize: 11,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              WaxSeal(label: sealLabel, size: 76, rotation: -0.14),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              MonsterCard(monster: player, scale: 0.42, faded: playerFaded),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'VS',
+                  style: TextStyle(
+                    fontFamily: AppFonts.cinzel,
+                    color: AppColors.sealDeep,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              MonsterCard(monster: enemy, scale: 0.42, faded: enemyFaded),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: AppColors.goldDeep, width: 0.5),
+              ),
+            ),
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              narration,
+              textAlign: TextAlign.justify,
+              style: const TextStyle(
+                fontFamily: AppFonts.mincho,
+                color: AppColors.inkDark,
+                fontSize: 13,
+                height: 1.9,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

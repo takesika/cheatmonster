@@ -1,12 +1,16 @@
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/battle_result.dart';
 import '../models/monster.dart';
 
 class RoomService {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   static const _codeChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   static const _codeLength = 6;
 
@@ -50,15 +54,32 @@ class RoomService {
   }
 
   /// モンスターデータを送信し、ready フラグを立てる
+  /// imageBytes が渡された場合は Firebase Storage にアップロードし、URL も RTDB に書く
   Future<void> submitMonster(
     String roomCode,
     int playerNum,
     Monster monster, {
     int pvpWins = 0,
     int pvpTotalMatches = 0,
+    Uint8List? imageBytes,
   }) async {
+    String? imageUrl;
+    if (imageBytes != null) {
+      try {
+        final ref = _storage.ref('rooms/$roomCode/player$playerNum.png');
+        await ref.putData(
+          imageBytes,
+          SettableMetadata(contentType: 'image/png'),
+        );
+        imageUrl = await ref.getDownloadURL();
+      } catch (_) {
+        // upload failed — fall through with null URL; opponent regenerates
+      }
+    }
+
     await _db.child('rooms/$roomCode/player$playerNum').set({
       ...monster.toJson(),
+      if (imageUrl != null) 'imageUrl': imageUrl,
       'ready': true,
       'pvpWins': pvpWins,
       'pvpTotalMatches': pvpTotalMatches,
@@ -106,7 +127,9 @@ class RoomService {
   }
 
   /// 相手プレイヤーのモンスターデータと戦績を取得
-  Future<({Monster monster, int pvpWins, int pvpTotalMatches})?> getOpponentMonster(
+  /// imageUrl が含まれている場合は画像もダウンロードして imageBytes をセット
+  Future<({Monster monster, int pvpWins, int pvpTotalMatches})?>
+      getOpponentMonster(
     String roomCode,
     int myPlayerNum,
   ) async {
@@ -118,11 +141,26 @@ class RoomService {
     final data = Map<String, dynamic>.from(snapshot.value as Map);
     final pvpWins = (data['pvpWins'] as num?)?.toInt() ?? 0;
     final pvpTotalMatches = (data['pvpTotalMatches'] as num?)?.toInt() ?? 0;
+    final imageUrl = data['imageUrl'] as String?;
+
+    Uint8List? imageBytes;
+    if (imageUrl != null) {
+      try {
+        final res = await http.get(Uri.parse(imageUrl));
+        if (res.statusCode == 200) {
+          imageBytes = res.bodyBytes;
+        }
+      } catch (_) {
+        // download failed — caller can fall back to regeneration
+      }
+    }
+
     data.remove('ready');
     data.remove('pvpWins');
     data.remove('pvpTotalMatches');
+    data.remove('imageUrl');
     return (
-      monster: Monster.fromJson(data),
+      monster: Monster.fromJson(data).copyWith(imageBytes: imageBytes),
       pvpWins: pvpWins,
       pvpTotalMatches: pvpTotalMatches,
     );
@@ -153,6 +191,7 @@ class RoomService {
   }
 
   /// 次のバトルのためにプレイヤー・結果データをリセット
+  /// アップロード済み画像も削除
   Future<void> resetForNextBattle(String roomCode) async {
     await Future.wait([
       _db.child('rooms/$roomCode/player1').remove(),
@@ -162,13 +201,27 @@ class RoomService {
       _db.child('rooms/$roomCode/player2_continue').remove(),
       _db.child('rooms/$roomCode/player1_quit').remove(),
       _db.child('rooms/$roomCode/player2_quit').remove(),
+      _deleteStorageImage(roomCode, 1),
+      _deleteStorageImage(roomCode, 2),
     ]);
     await _db.child('rooms/$roomCode/status').set('ready');
   }
 
-  /// 部屋データを削除
+  /// 部屋データと関連画像を削除
   Future<void> deleteRoom(String roomCode) async {
-    await _db.child('rooms/$roomCode').remove();
+    await Future.wait([
+      _db.child('rooms/$roomCode').remove(),
+      _deleteStorageImage(roomCode, 1),
+      _deleteStorageImage(roomCode, 2),
+    ]);
+  }
+
+  Future<void> _deleteStorageImage(String roomCode, int playerNum) async {
+    try {
+      await _storage.ref('rooms/$roomCode/player$playerNum.png').delete();
+    } catch (_) {
+      // already deleted or never uploaded — ignore
+    }
   }
 
   /// 部屋の status 変更を監視
