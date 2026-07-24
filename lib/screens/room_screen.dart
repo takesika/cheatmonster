@@ -8,7 +8,6 @@ import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 import '../services/room_service.dart';
-import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
 
@@ -148,52 +147,23 @@ class _RoomScreenState extends State<RoomScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              _NavBar(
-                title: '決闘の間',
-                onBack: _isLoading ? null : _goBack,
-              ),
+              _TopBar(title: '友達と戦う', onBack: _isLoading ? null : _goBack),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const FleurDivider(small: true),
-                      const SizedBox(height: 14),
-                      const _EngravedLine(text: 'オンライン対戦'),
-                      const SizedBox(height: 8),
-                      const Center(
-                        child: Text(
-                          'コードを共有して友達と対戦',
-                          style: TextStyle(
-                            fontFamily: AppFonts.mincho,
-                            color: AppColors.inkSoft,
-                            fontSize: 12,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
                       if (_errorMessage != null) ...[
                         _ErrorBanner(message: _errorMessage!),
                         const SizedBox(height: 14),
                       ],
                       if (_mode == null) ...[
-                        _PrimaryActionCard(
-                          label: '部屋を作る',
-                          subtitle: 'コードを発行して相手を待ちます',
-                          buttonLabel: '作成',
-                          variant: CmButtonVariant.gold,
-                          onTap: _createRoom,
-                        ),
+                        _CreateCard(onTap: _createRoom),
                         const SizedBox(height: 18),
-                        _OrDivider(),
+                        const _OrDivider(),
                         const SizedBox(height: 18),
-                        _PrimaryActionCard(
-                          label: '部屋に入る',
-                          subtitle: 'コードを入力して参加します',
-                          buttonLabel: '入る',
-                          variant: CmButtonVariant.goldOutline,
+                        _JoinEntryCard(
                           onTap: () => setState(() {
                             _mode = 'join';
                             _errorMessage = null;
@@ -235,63 +205,36 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 }
 
-class _NavBar extends StatelessWidget {
+class _TopBar extends StatelessWidget {
   final String title;
   final VoidCallback? onBack;
-  const _NavBar({required this.title, this.onBack});
+  const _TopBar({required this.title, this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 14),
-      child: Stack(
-        alignment: Alignment.center,
+      padding: const EdgeInsets.fromLTRB(6, 4, 18, 10),
+      child: Row(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              onPressed: onBack,
-              icon: const Icon(Icons.chevron_left,
-                  color: AppColors.goldLight, size: 26),
+          IconButton(
+            onPressed: onBack,
+            icon: const Icon(Icons.chevron_left,
+                color: AppColors.ink, size: 26),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: AppFonts.gothic,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
             ),
           ),
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: AppFonts.mincho,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-              letterSpacing: 8,
-              color: AppColors.goldLight,
-            ),
-          ),
+          const SizedBox(width: 40),
         ],
-      ),
-    );
-  }
-}
-
-class _EngravedLine extends StatelessWidget {
-  final String text;
-  const _EngravedLine({required this.text});
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (rect) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [AppColors.goldLight, AppColors.gold, AppColors.goldDeep],
-      ).createShader(rect),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontFamily: AppFonts.mincho,
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 6,
-          color: Colors.white,
-        ),
       ),
     );
   }
@@ -304,77 +247,194 @@ class _ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.seal.withOpacity(0.12),
-        border: Border.all(color: AppColors.seal),
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.red.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
       ),
       child: Text(
         message,
         textAlign: TextAlign.center,
         style: const TextStyle(
-          fontFamily: AppFonts.mincho,
-          color: AppColors.sealLight,
-          fontWeight: FontWeight.bold,
+          fontFamily: AppFonts.gothic,
+          color: AppColors.red,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
 }
 
-class _PrimaryActionCard extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final String buttonLabel;
-  final CmButtonVariant variant;
-  final VoidCallback onTap;
-  const _PrimaryActionCard({
-    required this.label,
-    required this.subtitle,
-    required this.buttonLabel,
-    required this.variant,
-    required this.onTap,
+class _CardShell extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets padding;
+  const _CardShell({
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+      padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        border: Border.all(color: AppColors.gold),
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: child,
+    );
+  }
+}
+
+class _CardTitleRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  const _CardTitleRow({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppColors.yellow,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.groups,
+              color: Color(0xFF1A1400), size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.ink,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.inkSoft,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CreateCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _CardShell(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: AppFonts.mincho,
-              color: AppColors.goldLight,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 4,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontFamily: AppFonts.mincho,
-              color: AppColors.inkSoft,
-              fontSize: 11,
-            ),
+          const _CardTitleRow(
+            title: '部屋をつくる',
+            subtitle: 'コードを友達に共有しよう',
           ),
           const SizedBox(height: 14),
           GradientButton(
-            label: buttonLabel,
-            variant: variant,
-            fontSize: 14,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            label: '部屋をつくる',
+            variant: CmButtonVariant.yellow,
+            fontSize: 15,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            fullWidth: true,
+            onTap: onTap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JoinEntryCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _JoinEntryCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return _CardShell(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.line, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.qr_code,
+                    color: AppColors.ink, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '部屋に入る',
+                      style: TextStyle(
+                        fontFamily: AppFonts.gothic,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    Text(
+                      'コードを入力して参加',
+                      style: TextStyle(
+                        fontFamily: AppFonts.gothic,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          GradientButton(
+            label: '部屋に入る',
+            variant: CmButtonVariant.ghost,
+            fontSize: 15,
+            padding: const EdgeInsets.symmetric(vertical: 14),
             fullWidth: true,
             onTap: onTap,
           ),
@@ -396,85 +456,27 @@ class _CreatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        border: Border.all(color: AppColors.gold),
-        borderRadius: BorderRadius.circular(4),
-      ),
+    return _CardShell(
+      padding: const EdgeInsets.fromLTRB(18, 22, 18, 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const _CardTitleRow(
+            title: '部屋をつくった',
+            subtitle: 'コードを友達に共有しよう',
+          ),
+          const SizedBox(height: 16),
           if (loading) ...[
-            const CircularProgressIndicator(color: AppColors.goldLight),
-            const SizedBox(height: 12),
-            const Text(
-              'コードを生成中...',
-              style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.inkSoft,
-                letterSpacing: 2,
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.yellow),
               ),
             ),
           ] else ...[
-            const Text(
-              'ルームコード',
-              style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.gold,
-                fontSize: 11,
-                letterSpacing: 4,
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: onCopy,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  border: Border.all(color: AppColors.goldDeep, width: 0.5),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      code ?? '',
-                      style: const TextStyle(
-                        fontFamily: AppFonts.cinzel,
-                        color: AppColors.goldLight,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 6,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.copy,
-                        color: AppColors.gold, size: 16),
-                  ],
-                ),
-              ),
-            ),
+            _CodeDisplay(code: code ?? '', onCopy: onCopy),
             const SizedBox(height: 16),
-            const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.goldLight,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '相手の参加を待っています...',
-              style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.inkSoft,
-                letterSpacing: 2,
-              ),
-            ),
+            const _WaitingIndicator(text: '相手の参加を待っています...'),
           ],
         ],
       ),
@@ -482,31 +484,109 @@ class _CreatingCard extends StatelessWidget {
   }
 }
 
+class _CodeDisplay extends StatelessWidget {
+  final String code;
+  final VoidCallback onCopy;
+  const _CodeDisplay({required this.code, required this.onCopy});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onCopy,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'コード',
+              style: TextStyle(
+                fontFamily: AppFonts.gothic,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkSoft,
+                letterSpacing: 1,
+              ),
+            ),
+            Row(
+              children: [
+                Text(
+                  code,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.mono,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                    letterSpacing: 4,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Icon(Icons.copy, size: 16, color: AppColors.inkMid),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WaitingIndicator extends StatelessWidget {
+  final String text;
+  const _WaitingIndicator({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.yellow,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: const TextStyle(
+            fontFamily: AppFonts.gothic,
+            color: AppColors.inkMid,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _OrDivider extends StatelessWidget {
+  const _OrDivider();
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-            child: Container(
-                height: 0.5,
-                color: AppColors.goldDeep.withOpacity(0.5))),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+        const Expanded(child: Divider(color: AppColors.line, thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            '又は',
+            'または',
             style: TextStyle(
-              fontFamily: AppFonts.mincho,
-              color: AppColors.gold,
-              fontSize: 12,
-              letterSpacing: 6,
+              fontFamily: AppFonts.gothic,
+              color: AppColors.inkSoft,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
-        Expanded(
-            child: Container(
-                height: 0.5,
-                color: AppColors.goldDeep.withOpacity(0.5))),
+        const Expanded(child: Divider(color: AppColors.line, thickness: 1)),
       ],
     );
   }
@@ -525,43 +605,35 @@ class _JoinCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        border: Border.all(color: AppColors.gold),
-        borderRadius: BorderRadius.circular(4),
-      ),
+    return _CardShell(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
-            child: Text(
-              'ルームコードを入力',
-              style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.gold,
-                fontSize: 12,
-                letterSpacing: 4,
-              ),
+          const Text(
+            '部屋に入る',
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
             ),
           ),
           const SizedBox(height: 14),
-          _CodeBoxes(
-            controller: controller,
-            autoFocus: true,
-          ),
+          _CodeBoxes(controller: controller, autoFocus: true),
           const SizedBox(height: 16),
           loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.goldLight),
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.yellow),
+                  ),
                 )
               : GradientButton(
                   label: '参加する',
-                  variant: CmButtonVariant.gold,
-                  fontSize: 14,
-                  letterSpacing: 4,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  variant: CmButtonVariant.yellow,
+                  fontSize: 15,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   fullWidth: true,
                   onTap: onSubmit,
                 ),
@@ -611,43 +683,37 @@ class _CodeBoxesState extends State<_CodeBoxes> {
       child: Stack(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(6, (i) {
               final ch = code[i].trim();
+              final filled = i < widget.controller.text.length;
               final isCursor = i == widget.controller.text.length;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Container(
-                  width: 38,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF0E2C0), Color(0xFFD8C298)],
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: filled || isCursor
+                              ? AppColors.ink
+                              : AppColors.line,
+                          blurRadius: 0,
+                          spreadRadius: filled || isCursor ? 1.6 : 1.2,
+                        ),
+                      ],
                     ),
-                    border: Border.all(
-                      color: isCursor ? AppColors.seal : AppColors.goldDeep,
-                      width: isCursor ? 1.5 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(3),
-                    boxShadow: isCursor
-                        ? [
-                            BoxShadow(
-                              color: AppColors.seal.withOpacity(0.4),
-                              spreadRadius: 1,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    ch.isEmpty ? '' : ch,
-                    style: const TextStyle(
-                      fontFamily: AppFonts.cinzel,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.inkDark,
+                    alignment: Alignment.center,
+                    child: Text(
+                      ch,
+                      style: TextStyle(
+                        fontFamily: AppFonts.gothic,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: filled ? AppColors.ink : AppColors.inkSoft,
+                      ),
                     ),
                   ),
                 ),

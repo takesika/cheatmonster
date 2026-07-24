@@ -5,8 +5,6 @@ import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
 import '../services/battle_limit_service.dart';
-import '../widgets/arcane_circle.dart';
-import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,91 +35,97 @@ class _HomeScreenState extends State<HomeScreen> {
               const total = BattleLimitService.maxBattlesPerDay;
               final canPlay = remaining > 0;
 
-              return Stack(
-                children: [
-                  // arcane circle centered behind everything
-                  const Positioned.fill(
-                    child: Center(
-                      child: ArcaneCircle(size: 380, opacity: 0.13),
-                    ),
-                  ),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12 * scale),
-                        child: ConstrainedBox(
-                          constraints:
-                              BoxConstraints(minHeight: constraints.maxHeight),
-                          child: IntrinsicHeight(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Top bar with challenge chip
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Column(
-                                  children: [
-                                    const FleurDivider(),
-                                    SizedBox(height: 18 * scale),
-                                    _EngravedTitle(scale: scale),
-                                    SizedBox(height: 10 * scale),
-                                    const FleurDivider(small: true),
-                                  ],
-                                ),
-                                SizedBox(height: 32 * scale),
-                                _ModeCard(
-                                  label: 'CPU対戦',
-                                  enabled: canPlay,
-                                  onTap: canPlay
-                                      ? () {
-                                          game.reset();
-                                          Navigator.pushNamed(
-                                              context, '/summon');
-                                        }
-                                      : null,
-                                ),
-                                SizedBox(height: 12 * scale),
-                                _ModeCard(
-                                  label: 'オンライン対戦',
-                                  enabled: canPlay,
-                                  onTap: canPlay
-                                      ? () {
-                                          game.reset();
-                                          game.setGameMode(GameMode.online);
-                                          Navigator.pushNamed(context, '/room');
-                                        }
-                                      : null,
-                                ),
-                                SizedBox(height: 18 * scale),
-                                _DailySigils(remaining: remaining, total: total),
-                                if (game.pvpTotalMatches > 0) ...[
-                                  SizedBox(height: 10 * scale),
-                                  _PvpRecord(
-                                    wins: game.pvpWins,
-                                    plays: game.pvpTotalMatches,
-                                  ),
-                                ],
-                                if (!canPlay) ...[
-                                  SizedBox(height: 10 * scale),
-                                  const Center(
-                                    child: Text(
-                                      '明日また挑戦できます',
-                                      style: TextStyle(
-                                        fontFamily: AppFonts.mincho,
-                                        color: AppColors.inkSoft,
-                                        letterSpacing: 2,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                _ChallengeChip(
+                                    remaining: remaining, total: total),
                               ],
                             ),
-                          ),
+                            SizedBox(height: 20 * scale),
+
+                            // Logo block
+                            const _Crown(size: 26, color: AppColors.yellowDeep),
+                            SizedBox(height: 6 * scale),
+                            _Logo(scale: scale),
+                            SizedBox(height: 6 * scale),
+                            const _SubTitle(),
+                            SizedBox(height: 8 * scale),
+                            const _Tagline(),
+
+                            const Spacer(),
+
+                            // Mode buttons
+                            _ModeButton(
+                              icon: '⚔',
+                              label: 'つくって戦う',
+                              subtitle: 'モンスターを作って挑戦',
+                              primary: true,
+                              enabled: canPlay,
+                              onTap: canPlay
+                                  ? () {
+                                      game.reset();
+                                      Navigator.pushNamed(context, '/summon');
+                                    }
+                                  : null,
+                            ),
+                            SizedBox(height: 12 * scale),
+                            _ModeButton(
+                              icon: '👥',
+                              label: '友達と戦う',
+                              subtitle: 'オンラインで対戦',
+                              primary: false,
+                              enabled: canPlay,
+                              onTap: canPlay
+                                  ? () {
+                                      game.reset();
+                                      game.setGameMode(GameMode.online);
+                                      Navigator.pushNamed(context, '/room');
+                                    }
+                                  : null,
+                            ),
+
+                            if (game.pvpTotalMatches > 0) ...[
+                              SizedBox(height: 16 * scale),
+                              _PvpRecord(
+                                wins: game.pvpWins,
+                                plays: game.pvpTotalMatches,
+                              ),
+                            ],
+
+                            if (!canPlay) ...[
+                              SizedBox(height: 12 * scale),
+                              const Center(
+                                child: Text(
+                                  '明日また挑戦できます',
+                                  style: TextStyle(
+                                    fontFamily: AppFonts.gothic,
+                                    color: AppColors.inkSoft,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: 8 * scale),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -131,77 +135,39 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _EngravedTitle extends StatelessWidget {
-  final double scale;
-  const _EngravedTitle({required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (rect) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          AppColors.goldLight,
-          AppColors.gold,
-          AppColors.goldDeep,
-        ],
-        stops: [0.0, 0.55, 1.0],
-      ).createShader(rect),
-      child: Text(
-        'CHEAT\nMONSTERS',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontFamily: AppFonts.cinzel,
-          fontWeight: FontWeight.w800,
-          fontSize: 38 * scale,
-          height: 1.0,
-          letterSpacing: 5,
-          color: Colors.white,
-          shadows: const [
-            Shadow(color: Color(0x66000000), offset: Offset(0, 1)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DailySigils extends StatelessWidget {
+class _ChallengeChip extends StatelessWidget {
   final int remaining;
   final int total;
-  const _DailySigils({required this.remaining, required this.total});
+  const _ChallengeChip({required this.remaining, required this.total});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        border: Border.all(color: AppColors.goldDeep, width: 1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            '本日の召喚権',
-            style: TextStyle(
-              fontFamily: AppFonts.mincho,
-              color: AppColors.gold,
-              fontSize: 11,
-              letterSpacing: 6,
-            ),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.ink.withValues(alpha: 0.06),
+            blurRadius: 8,
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(total, (i) {
-              final on = i < remaining;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: _Sigil(on: on),
-              );
-            }),
+        ],
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _Crown(size: 14, color: AppColors.yellowDeep),
+          const SizedBox(width: 6),
+          Text(
+            '挑戦 $remaining/$total',
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
           ),
         ],
       ),
@@ -209,122 +175,188 @@ class _DailySigils extends StatelessWidget {
   }
 }
 
-class _Sigil extends StatelessWidget {
-  final bool on;
-  const _Sigil({required this.on});
+class _Crown extends StatelessWidget {
+  final double size;
+  final Color color;
+  const _Crown({required this.size, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: on
-            ? const RadialGradient(
-                center: Alignment(-0.3, -0.4),
-                colors: [
-                  AppColors.goldLight,
-                  AppColors.gold,
-                  AppColors.goldDeep,
-                ],
-                stops: [0.0, 0.6, 1.0],
-              )
-            : null,
-        color: on ? null : Colors.white.withOpacity(0.04),
-        border: on
-            ? null
-            : Border.all(color: AppColors.goldDeep, width: 1, style: BorderStyle.solid),
-        boxShadow: on
-            ? [
-                BoxShadow(
-                  color: AppColors.goldGlow.withOpacity(0.25),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ]
-            : null,
-      ),
-      alignment: Alignment.center,
-      child: Opacity(
-        opacity: on ? 1.0 : 0.6,
-        child: Text(
-          on ? '✦' : '',
-          style: TextStyle(
-            fontFamily: AppFonts.cinzel,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            color: on ? const Color(0xFF3D2C14) : AppColors.goldDeep,
-          ),
-        ),
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _CrownPainter(color),
+    );
+  }
+}
+
+class _CrownPainter extends CustomPainter {
+  final Color color;
+  _CrownPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width;
+    final path = Path()
+      ..moveTo(s * 0.125, s * 0.333)
+      ..lineTo(s * 0.271, s * 0.5)
+      ..lineTo(s * 0.5, s * 0.208)
+      ..lineTo(s * 0.729, s * 0.5)
+      ..lineTo(s * 0.875, s * 0.333)
+      ..lineTo(s * 0.813, s * 0.792)
+      ..lineTo(s * 0.188, s * 0.792)
+      ..close();
+    final fill = Paint()..color = color..style = PaintingStyle.fill;
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.05
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, fill);
+    canvas.drawPath(path, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CrownPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+class _Logo extends StatelessWidget {
+  final double scale;
+  const _Logo({required this.scale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'CHEAT\nMONSTERS',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontFamily: AppFonts.gothic,
+        fontWeight: FontWeight.w900,
+        fontSize: 34 * scale,
+        height: 1.0,
+        letterSpacing: 0.5,
+        color: AppColors.ink,
       ),
     );
   }
 }
 
-class _ModeCard extends StatelessWidget {
+class _SubTitle extends StatelessWidget {
+  const _SubTitle();
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'チートモンスターズ',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontFamily: AppFonts.gothic,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 4,
+        color: AppColors.inkMid,
+      ),
+    );
+  }
+}
+
+class _Tagline extends StatelessWidget {
+  const _Tagline();
+  @override
+  Widget build(BuildContext context) {
+    return const Text(
+      'つくって、戦って、世界一を目指そう！',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontFamily: AppFonts.gothic,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.inkMid,
+      ),
+    );
+  }
+}
+
+class _ModeButton extends StatelessWidget {
+  final String icon;
   final String label;
+  final String subtitle;
+  final bool primary;
   final bool enabled;
   final VoidCallback? onTap;
-  const _ModeCard({
+
+  const _ModeButton({
+    required this.icon,
     required this.label,
+    required this.subtitle,
+    required this.primary,
     required this.enabled,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bg = primary ? AppColors.yellow : AppColors.card;
+    final labelColor = primary ? const Color(0xFF1A1400) : AppColors.ink;
+    final subColor = primary
+        ? const Color(0xFF1A1400).withValues(alpha: 0.55)
+        : AppColors.inkSoft;
+
     return Opacity(
-      opacity: enabled ? 1.0 : 0.5,
+      opacity: enabled ? 1.0 : 0.4,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.gold.withOpacity(0.18),
-                  AppColors.gold.withOpacity(0.06),
-                  AppColors.goldDeep.withOpacity(0.10),
-                ],
-                stops: const [0.0, 0.55, 1.0],
-              ),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.gold, width: 1),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.goldDeep.withOpacity(0.5),
-                  offset: const Offset(0, 2),
-                ),
-                BoxShadow(
-                  color: AppColors.goldGlow.withOpacity(0.12),
-                  blurRadius: 14,
-                  spreadRadius: -2,
-                ),
-              ],
+              color: bg,
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  primary ? null : Border.all(color: AppColors.line, width: 1.5),
+              boxShadow: primary
+                  ? [
+                      BoxShadow(
+                        color: AppColors.yellow.withValues(alpha: 0.35),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
             child: Row(
               children: [
+                Text(icon, style: const TextStyle(fontSize: 22)),
+                const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontFamily: AppFonts.mincho,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 5,
-                      color: AppColors.goldLight,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontFamily: AppFonts.gothic,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: labelColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontFamily: AppFonts.gothic,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: subColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const Icon(Icons.chevron_right,
-                    color: AppColors.goldLight, size: 22),
+                Icon(Icons.chevron_right, color: labelColor, size: 22),
               ],
             ),
           ),
@@ -343,29 +375,19 @@ class _PvpRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final rate = plays > 0 ? '${(wins / plays * 100).round()}%' : '—';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        border: Border.all(
-          color: AppColors.goldDeep,
-          width: 0.5,
-          style: BorderStyle.solid,
-        ),
-        borderRadius: BorderRadius.circular(2),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line, width: 1.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _Stat(label: '勝利', value: '$wins'),
-          Container(
-              width: 1,
-              height: 22,
-              color: AppColors.goldDeep.withOpacity(0.4)),
+          Container(width: 1, height: 22, color: AppColors.line),
           _Stat(label: '対戦', value: '$plays'),
-          Container(
-              width: 1,
-              height: 22,
-              color: AppColors.goldDeep.withOpacity(0.4)),
+          Container(width: 1, height: 22, color: AppColors.line),
           _Stat(label: '勝率', value: rate),
         ],
       ),
@@ -383,21 +405,22 @@ class _Stat extends StatelessWidget {
       children: [
         Text(label,
             style: const TextStyle(
-              fontFamily: AppFonts.mincho,
+              fontFamily: AppFonts.gothic,
               fontSize: 10,
-              color: AppColors.gold,
-              letterSpacing: 4,
+              color: AppColors.inkSoft,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
             )),
         const SizedBox(height: 2),
         Text(value,
             style: const TextStyle(
-              fontFamily: AppFonts.cinzel,
+              fontFamily: AppFonts.gothic,
               fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.goldLight,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+              fontFeatures: [FontFeature.tabularFigures()],
             )),
       ],
     );
   }
 }
-

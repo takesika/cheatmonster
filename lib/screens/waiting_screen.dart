@@ -6,11 +6,9 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/game_provider.dart';
 import '../services/room_service.dart';
-import '../widgets/arcane_circle.dart';
-import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
-import '../widgets/monster_card.dart';
+import '../widgets/monster_art.dart';
 
 class WaitingScreen extends StatefulWidget {
   const WaitingScreen({super.key});
@@ -97,7 +95,7 @@ class _WaitingScreenState extends State<WaitingScreen> {
       body: GameBackground(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _timedOut ? _buildTimeoutView() : _buildWaitingView(),
           ),
         ),
@@ -107,91 +105,105 @@ class _WaitingScreenState extends State<WaitingScreen> {
 
   Widget _buildWaitingView() {
     final game = context.watch<GameProvider>();
-    return Stack(
-      children: [
-        const Positioned.fill(
-          child: Center(
-            child: ArcaneCircle(size: 320, opacity: 0.18),
-          ),
-        ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: ConstrainedBox(
-                constraints:
-                    BoxConstraints(minHeight: constraints.maxHeight - 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      children: [
-                        const FleurDivider(small: true),
-                        const SizedBox(height: 14),
-                        ShaderMask(
-                          shaderCallback: (rect) => const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              AppColors.goldLight,
-                              AppColors.gold,
-                              AppColors.goldDeep,
-                            ],
-                          ).createShader(rect),
-                          child: const Text(
-                            '相手を待っています',
-                            style: TextStyle(
-                              fontFamily: AppFonts.mincho,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 4,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: game.playerMonster != null
-                          ? MonsterCard(
-                              monster: game.playerMonster!,
-                              isLoading: game.isGeneratingImage,
-                              scale: 0.85,
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 26,
-                            height: 26,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.goldLight,
-                            ),
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            '相手のモンスター召喚を待っています...',
-                            style: TextStyle(
-                              fontFamily: AppFonts.mincho,
-                              color: AppColors.inkSoft,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: ConstrainedBox(
+            constraints:
+                BoxConstraints(minHeight: constraints.maxHeight - 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                const Text(
+                  '相手を待っています',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.ink,
+                  ),
                 ),
-              ),
-            );
-          },
-        ),
-      ],
+                const SizedBox(height: 4),
+                Text(
+                  'コード ${game.roomCode ?? ''}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.mono,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.inkMid,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                if (game.playerMonster != null) ...[
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: MonsterArt(
+                      imageBytes: game.playerMonster!.imageBytes,
+                      loading: game.isGeneratingImage,
+                      radius: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    game.playerMonster!.name,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.inkMid,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  AbilityLine(
+                    text: game.playerMonster!.specialAbility,
+                    size: 20,
+                  ),
+                ],
+                const SizedBox(height: 28),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.line, width: 1.5),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.yellow,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        '相手の召喚を待っています...',
+                        style: TextStyle(
+                          fontFamily: AppFonts.gothic,
+                          color: AppColors.inkMid,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -200,26 +212,26 @@ class _WaitingScreenState extends State<WaitingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.access_time,
+          const Icon(Icons.access_time_outlined,
               size: 56, color: AppColors.inkSoft),
           const SizedBox(height: 16),
           const Text(
             '相手が見つかりませんでした',
             style: TextStyle(
-              fontFamily: AppFonts.mincho,
-              color: AppColors.goldLight,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
+              fontFamily: AppFonts.gothic,
+              color: AppColors.ink,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
           GradientButton(
-            label: 'ホームへ',
-            variant: CmButtonVariant.gold,
-            fontSize: 14,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+            label: 'ホームへ戻る',
+            icon: Icons.home_outlined,
+            variant: CmButtonVariant.ink,
+            fontSize: 15,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
             onTap: _goHome,
           ),
         ],

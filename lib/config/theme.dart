@@ -1,91 +1,102 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const bg = Color(0xFF0C1228);
-  static const bgDeep = Color(0xFF06091A);
-  static const panel = Color(0xFF141B3A);
-  static const panelLight = Color(0xFF1D2750);
+  // ── Ogiri minimal palette ──
+  static const bg = Color(0xFFFBFBF9);
+  static const card = Color(0xFFFFFFFF);
+  static const ink = Color(0xFF191919);
+  static const inkMid = Color(0xFF5C5C56);
+  static const inkSoft = Color(0xFF9A9A94);
+  static const line = Color(0xFFECECE8);
 
-  static const parchment = Color(0xFFEDE0C0);
-  static const parchmentDeep = Color(0xFFCFB98C);
-  static const parchmentLight = Color(0xFFF8EED0);
-  static const parchmentMid = Color(0xFFE6CF95);
+  static const yellow = Color(0xFFFDCB2E);
+  static const yellowDeep = Color(0xFFF0B90C);
+  static const yellowSoft = Color(0xFFFFF3C4);
 
-  static const ink = Color(0xFFE8DCB8);
-  static const inkDark = Color(0xFF1C1A2C);
-  static const inkSoft = Color(0xFF9AA4C6);
-  static const inkSoftDark = Color(0xFF5A4F3C);
+  static const red = Color(0xFFE0342B);
+  static const win = Color(0xFFE8A400);
+  static const atk = Color(0xFFE0342B);
+  static const def = Color(0xFF2F6DE0);
 
-  static const seal = Color(0xFF8A3A3A);
-  static const sealDeep = Color(0xFF5A2424);
-  static const sealLight = Color(0xFFA04848);
+  static const dark = Color(0xFF0D1122);
+  static const darkPanel = Color(0xFF171D33);
 
-  static const gold = Color(0xFFB89752);
-  static const goldLight = Color(0xFFD4B97A);
-  static const goldDeep = Color(0xFF7E6228);
-  static const goldGlow = Color(0xFFE2B864);
-
-  static const line = Color(0xFF2E3760);
-  static const win = Color(0xFFB89752);
-  static const lose = Color(0xFF5D5470);
-  static const starlight = Color(0xFF7A87B0);
-
-  // legacy aliases for backwards compat in unmodified call sites
-  static const goldDark = goldDeep;
-  static const sapphire = panelLight;
-  static const ruby = seal;
-  static const amethyst = panel;
-  static const amethystLight = panelLight;
+  // ── Legacy aliases (map old Arcane Codex names to new palette) ──
+  static const bgDeep = bg;
+  static const panel = card;
+  static const panelLight = card;
+  static const parchment = card;
+  static const parchmentDeep = line;
+  static const parchmentLight = card;
+  static const parchmentMid = line;
+  static const inkDark = ink;
+  static const inkSoftDark = inkMid;
+  static const seal = red;
+  static const sealDeep = red;
+  static const sealLight = red;
+  static const gold = yellow;
+  static const goldLight = yellow;
+  static const goldDeep = yellowDeep;
+  static const goldGlow = yellow;
+  static const goldDark = yellowDeep;
+  static const sapphire = card;
+  static const ruby = red;
+  static const amethyst = card;
+  static const amethystLight = card;
   static const textPrimary = ink;
-  static const textSecondary = inkSoft;
+  static const textSecondary = inkMid;
   static const backgroundStart = bg;
-  static const backgroundEnd = bgDeep;
-  static const cardWhite = parchmentLight;
+  static const backgroundEnd = bg;
+  static const cardWhite = card;
+  static const lose = red;
+  static const starlight = inkSoft;
 }
 
 class AppFonts {
-  static const cinzel = 'Cinzel';
-  static const eb = 'EB Garamond';
-  static const cormorant = 'Cormorant Garamond';
-  static const mincho = 'Hiragino Mincho ProN';
+  // iOS system Japanese gothic — closest match to Zen Kaku Gothic New without bundling
+  static const gothic = 'Hiragino Sans';
+  static const mono = 'Menlo';
+
+  // legacy aliases
+  static const cinzel = gothic;
+  static const eb = gothic;
+  static const cormorant = gothic;
+  static const mincho = gothic;
 }
 
 ThemeData gameTheme() => ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bg,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.gold,
-        secondary: AppColors.seal,
-        surface: AppColors.panel,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.yellow,
+        secondary: AppColors.ink,
+        surface: AppColors.card,
         onSurface: AppColors.ink,
       ),
       textTheme: const TextTheme(
         headlineLarge: TextStyle(
-          fontFamily: AppFonts.mincho,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 6,
-          color: AppColors.goldLight,
+          fontFamily: AppFonts.gothic,
+          fontWeight: FontWeight.w900,
+          color: AppColors.ink,
         ),
         headlineMedium: TextStyle(
-          fontFamily: AppFonts.mincho,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 4,
-          color: AppColors.goldLight,
+          fontFamily: AppFonts.gothic,
+          fontWeight: FontWeight.w800,
+          color: AppColors.ink,
         ),
         headlineSmall: TextStyle(
-          fontFamily: AppFonts.mincho,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 3,
-          color: AppColors.goldLight,
+          fontFamily: AppFonts.gothic,
+          fontWeight: FontWeight.w800,
+          color: AppColors.ink,
         ),
         bodyMedium: TextStyle(
-          fontFamily: AppFonts.mincho,
+          fontFamily: AppFonts.gothic,
           color: AppColors.ink,
         ),
         bodySmall: TextStyle(
-          fontFamily: AppFonts.mincho,
-          color: AppColors.inkSoft,
+          fontFamily: AppFonts.gothic,
+          color: AppColors.inkMid,
         ),
       ),
     );

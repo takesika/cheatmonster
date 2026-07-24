@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 
-enum CmButtonVariant { gold, crimson, goldOutline }
+enum CmButtonVariant {
+  yellow,
+  ink,
+  ghost,
+  // legacy aliases — mapped to closest new variant
+  gold,
+  crimson,
+  goldOutline,
+}
 
 class GradientButton extends StatelessWidget {
   final String label;
@@ -12,8 +20,9 @@ class GradientButton extends StatelessWidget {
   final double letterSpacing;
   final EdgeInsetsGeometry padding;
   final bool fullWidth;
+  final IconData? icon;
 
-  // legacy params kept for backwards-compat (no-op when variant is set)
+  // legacy params kept for backwards-compat (no-op)
   final List<Color>? gradientColors;
   final Color? shadowColor;
 
@@ -21,121 +30,111 @@ class GradientButton extends StatelessWidget {
     super.key,
     required this.label,
     this.onTap,
-    this.variant = CmButtonVariant.gold,
+    this.variant = CmButtonVariant.yellow,
     this.fontSize = 16,
-    this.letterSpacing = 6,
-    this.padding = const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+    this.letterSpacing = 1.2,
+    this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
     this.fullWidth = false,
+    this.icon,
     this.gradientColors,
     this.shadowColor,
   });
 
+  CmButtonVariant get _resolved {
+    switch (variant) {
+      case CmButtonVariant.gold:
+        return CmButtonVariant.yellow;
+      case CmButtonVariant.crimson:
+        return CmButtonVariant.ink;
+      case CmButtonVariant.goldOutline:
+        return CmButtonVariant.ghost;
+      default:
+        return variant;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final disabled = onTap == null;
+    final resolved = _resolved;
 
     final BoxDecoration deco;
     final Color textColor;
-    final Color borderColor;
 
-    switch (variant) {
-      case CmButtonVariant.gold:
+    switch (resolved) {
+      case CmButtonVariant.yellow:
         deco = BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.goldLight,
-              AppColors.gold,
-              AppColors.goldDeep,
-            ],
-            stops: [0.0, 0.6, 1.0],
-          ),
-          border: Border.all(color: AppColors.goldDeep, width: 1),
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.goldDeep,
-              offset: Offset(0, 2),
-            ),
-          ],
-        );
-        textColor = const Color(0xFF1A1428);
-        borderColor = AppColors.goldDeep;
-        break;
-      case CmButtonVariant.crimson:
-        deco = BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.sealLight,
-              AppColors.seal,
-              AppColors.sealDeep,
-            ],
-            stops: [0.0, 0.6, 1.0],
-          ),
-          border: Border.all(color: AppColors.sealDeep, width: 1),
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.sealDeep,
-              offset: Offset(0, 2),
-            ),
-          ],
-        );
-        textColor = AppColors.goldLight;
-        borderColor = AppColors.sealDeep;
-        break;
-      case CmButtonVariant.goldOutline:
-        deco = BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
-          border: Border.all(color: AppColors.gold, width: 1),
-          borderRadius: BorderRadius.circular(4),
+          color: AppColors.yellow,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
-              spreadRadius: 0,
-              blurRadius: 0,
+              color: AppColors.yellow.withValues(alpha: 0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         );
-        textColor = AppColors.goldLight;
-        borderColor = AppColors.gold;
+        textColor = const Color(0xFF1A1400);
         break;
+      case CmButtonVariant.ink:
+        deco = BoxDecoration(
+          color: AppColors.ink,
+          borderRadius: BorderRadius.circular(16),
+        );
+        textColor = Colors.white;
+        break;
+      case CmButtonVariant.ghost:
+        deco = BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.line, width: 1.5),
+        );
+        textColor = AppColors.ink;
+        break;
+      default:
+        deco = BoxDecoration(
+          color: AppColors.yellow,
+          borderRadius: BorderRadius.circular(16),
+        );
+        textColor = AppColors.ink;
     }
 
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, color: textColor, size: fontSize + 2),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppFonts.gothic,
+            color: textColor,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w800,
+            letterSpacing: letterSpacing,
+          ),
+        ),
+      ],
+    );
+
     final core = Opacity(
-      opacity: disabled ? 0.5 : 1.0,
+      opacity: disabled ? 0.4 : 1.0,
       child: Container(
         decoration: deco,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(16),
             onTap: onTap,
-            child: Padding(
-              padding: padding,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppFonts.mincho,
-                  color: textColor,
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: letterSpacing,
-                ),
-              ),
-            ),
+            child: Padding(padding: padding, child: content),
           ),
         ),
       ),
     );
-
-    // suppress unused warning for legacy params
-    // ignore: unused_local_variable
-    final _ = borderColor;
 
     return fullWidth ? SizedBox(width: double.infinity, child: core) : core;
   }

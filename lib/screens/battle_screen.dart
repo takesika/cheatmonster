@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,12 +6,11 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/battle_result.dart';
 import '../models/game_mode.dart';
+import '../models/monster.dart';
 import '../providers/game_provider.dart';
-import '../widgets/arcane_circle.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
-import '../widgets/monster_card.dart';
-import '../widgets/wax_seal.dart';
+import '../widgets/monster_art.dart';
 
 class BattleScreen extends StatefulWidget {
   const BattleScreen({super.key});
@@ -27,7 +25,7 @@ class _BattleScreenState extends State<BattleScreen>
     with TickerProviderStateMixin {
   BattlePhase _phase = BattlePhase.reveal;
   late AnimationController _revealController;
-  late Animation<double> _flipAnim;
+  late Animation<double> _enemyFade;
 
   bool _waitingForOpponentChoice = false;
   StreamSubscription<String>? _continueStatusSubscription;
@@ -38,13 +36,13 @@ class _BattleScreenState extends State<BattleScreen>
     super.initState();
     _revealController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 700),
     );
-    _flipAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _revealController, curve: Curves.easeInOut),
+    _enemyFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _revealController, curve: Curves.easeOut),
     );
 
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         _revealController.forward().then((_) {
           if (mounted) setState(() => _phase = BattlePhase.ready);
@@ -64,158 +62,98 @@ class _BattleScreenState extends State<BattleScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GameBackground(
-        child: SafeArea(
-          child: Consumer<GameProvider>(
-            builder: (context, game, _) {
-              if (game.playerMonster == null || game.cpuMonster == null) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AppColors.gold),
-                );
-              }
+      body: Consumer<GameProvider>(
+        builder: (context, game, _) {
+          if (game.playerMonster == null || game.cpuMonster == null) {
+            return const GameBackground(
+              dark: true,
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.yellow),
+              ),
+            );
+          }
 
-              if (game.battleResult != null && _phase != BattlePhase.result) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _phase = BattlePhase.result);
-                });
-              }
-              if (game.isBattling && _phase != BattlePhase.battling) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) setState(() => _phase = BattlePhase.battling);
-                });
-              }
+          if (game.battleResult != null && _phase != BattlePhase.result) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _phase = BattlePhase.result);
+            });
+          }
+          if (game.isBattling && _phase != BattlePhase.battling) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _phase = BattlePhase.battling);
+            });
+          }
 
-              if (_phase == BattlePhase.result) {
-                return _buildResultLayout(context, game);
-              }
-              return _buildArenaLayout(context, game);
-            },
-          ),
-        ),
+          if (_phase == BattlePhase.result) {
+            return GameBackground(
+              child: SafeArea(child: _buildResultLayout(context, game)),
+            );
+          }
+          return GameBackground(
+            dark: true,
+            child: SafeArea(child: _buildArenaLayout(context, game)),
+          );
+        },
       ),
     );
   }
 
   Widget _buildArenaLayout(BuildContext context, GameProvider game) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
-            child: ShaderMask(
-              shaderCallback: (rect) => const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.goldLight,
-                  AppColors.gold,
-                  AppColors.goldDeep,
-                ],
-              ).createShader(rect),
-              child: Text(
-                game.gameMode == GameMode.cpu
-                    ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
-                    : 'BATTLE ${game.onlineBattleCount} / ${GameConstants.maxOnlineBattles}',
-                style: const TextStyle(
-                  fontFamily: AppFonts.cinzel,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 4,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
+    final stageInfo = game.gameMode == GameMode.cpu
+        ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
+        : 'BATTLE ${game.onlineBattleCount + 1} / ${GameConstants.maxOnlineBattles}';
 
-          // arena (fixed height so it can sit inside scroll view)
-          SizedBox(
-            height: 480,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Stack(
-                alignment: Alignment.center,
+    return Column(
+      children: [
+        _DarkTopBar(title: stageInfo),
+        Expanded(
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  const Positioned.fill(
-                    child: Center(
-                      child: ArcaneCircle(size: 320, opacity: 0.18),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Center(child: _TaiSymbol()),
-                  ),
-
-                  // player card top-left
-                  Positioned(
-                    top: 20,
-                    left: 12,
-                    child: _CardWithLabel(
-                      label: 'YOU',
-                      labelColor: AppColors.panel,
-                      rotation: -0.09,
-                      child: MonsterCard(
-                        monster: game.playerMonster!,
-                        scale: 0.78,
-                        selected: true,
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _enemyFade,
+                      child: BattleMonster(
+                        imageBytes: game.cpuMonster!.imageBytes,
+                        loading: game.isGeneratingCpuImage,
+                        name: game.cpuMonster!.name,
+                        ability: game.cpuMonster!.specialAbility,
+                        alignRight: true,
                       ),
                     ),
                   ),
-
-                  // enemy card bottom-right with flip
-                  Positioned(
-                    bottom: 20,
-                    right: 12,
-                    child: AnimatedBuilder(
-                      animation: _flipAnim,
-                      builder: (context, _) {
-                        final showFront = _flipAnim.value > 0.5;
-                        return Transform(
-                          alignment: Alignment.center,
-                          transform: Matrix4.identity()
-                            ..setEntry(3, 2, 0.001)
-                            ..rotateY((1 - _flipAnim.value) * pi),
-                          child: _CardWithLabel(
-                            label: 'ENEMY',
-                            labelColor: AppColors.seal,
-                            rotation: 0.09,
-                            child: showFront
-                                ? MonsterCard(
-                                    monster: game.cpuMonster!,
-                                    scale: 0.78,
-                                    isLoading: game.isGeneratingCpuImage,
-                                  )
-                                : MonsterCard(
-                                    monster: game.cpuMonster!,
-                                    scale: 0.78,
-                                    showBack: true,
-                                  ),
-                          ),
-                        );
-                      },
+                  Expanded(
+                    child: BattleMonster(
+                      imageBytes: game.playerMonster!.imageBytes,
+                      name: game.playerMonster!.name,
+                      ability: game.playerMonster!.specialAbility,
+                      alignRight: false,
                     ),
                   ),
                 ],
               ),
-            ),
+              const Positioned.fill(
+                child: Center(child: _VsBadge()),
+              ),
+            ],
           ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-            child: _bottomCta(context, game),
-          ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: _bottomCta(context, game),
+        ),
+      ],
     );
   }
 
   Widget _bottomCta(BuildContext context, GameProvider game) {
     if (_phase == BattlePhase.reveal) {
-      return const _OracleSpinner(text: '対戦相手が現れた...');
+      return const _DarkSpinner(text: '対戦相手が現れた...');
     }
     if (_phase == BattlePhase.battling) {
-      return const _OracleSpinner(text: 'ジャッジ中...');
+      return const _DarkSpinner(text: 'AIがジャッジ中...');
     }
-    // ready phase
     final isOnline = game.gameMode == GameMode.online;
     final isPlayer2 = isOnline && game.playerNumber == 2;
     if (isPlayer2) {
@@ -224,14 +162,15 @@ class _BattleScreenState extends State<BattleScreen>
           game.startOnlineBattle();
         });
       }
-      return const _OracleSpinner(text: '相手の操作を待機中...');
+      return const _DarkSpinner(text: '相手の操作を待機中...');
     }
     return GradientButton(
       label: '開戦',
-      variant: CmButtonVariant.crimson,
-      fontSize: 18,
-      letterSpacing: 8,
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      icon: Icons.sports_kabaddi,
+      variant: CmButtonVariant.yellow,
+      fontSize: 17,
+      letterSpacing: 2,
+      padding: const EdgeInsets.symmetric(vertical: 18),
       fullWidth: true,
       onTap: () {
         if (isOnline) {
@@ -246,54 +185,48 @@ class _BattleScreenState extends State<BattleScreen>
   Widget _buildResultLayout(BuildContext context, GameProvider game) {
     final result = game.battleResult!;
     final isOnline = game.gameMode == GameMode.online;
-    final isCpu = game.gameMode == GameMode.cpu;
     final outcome = result.outcome;
     final isWin = outcome == BattleOutcome.win;
     final isDraw = outcome == BattleOutcome.draw;
-    final outcomeLabel = isDraw ? 'DRAW' : (isWin ? 'WIN' : 'LOSE');
-    final sealLabel = isDraw ? '和' : (isWin ? '勝' : '敗');
+
+    // Hero card shows: winner on win/lose, player's monster on draw
+    final displayMonster = isDraw
+        ? game.playerMonster!
+        : (isWin ? game.playerMonster! : game.cpuMonster!);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ShaderMask(
-            shaderCallback: (rect) => const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.goldLight,
-                AppColors.gold,
-                AppColors.goldDeep,
-              ],
-            ).createShader(rect),
-            child: const Text(
-              '結果',
-              style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 6,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
+          _ResultHeader(isWin: isWin, isDraw: isDraw),
+          const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
-              child: _ParchmentResultPanel(
-                outcomeLabel: outcomeLabel,
-                sealLabel: sealLabel,
-                player: game.playerMonster!,
-                enemy: game.cpuMonster!,
-                playerFaded: !isWin && !isDraw,
-                enemyFaded: isWin,
-                narration: result.narration,
-                stageInfo: isCpu
-                    ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
-                    : isOnline
-                        ? 'BATTLE ${game.onlineBattleCount} / ${GameConstants.maxOnlineBattles}'
-                        : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ResultHeroCard(monster: displayMonster),
+                  const SizedBox(height: 16),
+                  Text(
+                    result.narration,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.inkMid,
+                      height: 1.7,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _MatchupSummary(
+                    player: game.playerMonster!,
+                    enemy: game.cpuMonster!,
+                    playerFaded: !isWin && !isDraw,
+                    enemyFaded: isWin,
+                  ),
+                ],
               ),
             ),
           ),
@@ -365,10 +298,11 @@ class _BattleScreenState extends State<BattleScreen>
       if (game.cpuStage < GameConstants.maxCpuStages) {
         return GradientButton(
           label: '次のステージへ',
-          variant: CmButtonVariant.crimson,
-          fontSize: 14,
-          letterSpacing: 4,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          icon: Icons.arrow_forward,
+          variant: CmButtonVariant.yellow,
+          fontSize: 16,
+          letterSpacing: 1.2,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           fullWidth: true,
           onTap: () {
             game.resetForNextCpuStage();
@@ -382,22 +316,22 @@ class _BattleScreenState extends State<BattleScreen>
         return Column(
           children: [
             const Text(
-              '全ステージクリア',
+              '🏆 全ステージクリア',
               style: TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.goldLight,
+                fontFamily: AppFonts.gothic,
+                color: AppColors.win,
                 fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 4,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             GradientButton(
-              label: 'ホームへ',
-              variant: CmButtonVariant.gold,
-              fontSize: 14,
-              letterSpacing: 4,
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              label: 'ホームへ戻る',
+              icon: Icons.home_outlined,
+              variant: CmButtonVariant.ink,
+              fontSize: 15,
+              padding: const EdgeInsets.symmetric(vertical: 16),
               fullWidth: true,
               onTap: () {
                 game.reset();
@@ -411,32 +345,25 @@ class _BattleScreenState extends State<BattleScreen>
         );
       }
     }
-    return Row(
-      children: [
-        Expanded(
-          child: GradientButton(
-            label: 'ホームへ',
-            variant: CmButtonVariant.goldOutline,
-            fontSize: 12,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            fullWidth: true,
-            onTap: () {
-              game.reset();
-              if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(
-                    context, '/', (route) => false);
-              }
-            },
-          ),
-        ),
-      ],
+    return GradientButton(
+      label: 'ホームへ戻る',
+      icon: Icons.home_outlined,
+      variant: CmButtonVariant.ghost,
+      fontSize: 15,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      fullWidth: true,
+      onTap: () {
+        game.reset();
+        if (context.mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        }
+      },
     );
   }
 
   Widget _buildOnlineButtons(BuildContext context, GameProvider game) {
     if (_waitingForOpponentChoice) {
-      return const _OracleSpinner(text: '相手の選択を待っています...');
+      return const _LightSpinner(text: '相手の選択を待っています...');
     }
     if (game.onlineBattleCount >= GameConstants.maxOnlineBattles ||
         game.remainingBattles <= 0) {
@@ -448,19 +375,18 @@ class _BattleScreenState extends State<BattleScreen>
               child: Text(
                 '本日の召喚権を使い切りました',
                 style: TextStyle(
-                  fontFamily: AppFonts.mincho,
+                  fontFamily: AppFonts.gothic,
                   color: AppColors.inkSoft,
-                  fontSize: 11,
-                  letterSpacing: 2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           GradientButton(
             label: '終わる',
-            variant: CmButtonVariant.gold,
-            fontSize: 14,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            variant: CmButtonVariant.ink,
+            fontSize: 15,
+            padding: const EdgeInsets.symmetric(vertical: 16),
             fullWidth: true,
             onTap: () => _handleQuit(game),
           ),
@@ -472,10 +398,9 @@ class _BattleScreenState extends State<BattleScreen>
         Expanded(
           child: GradientButton(
             label: '終わる',
-            variant: CmButtonVariant.goldOutline,
-            fontSize: 12,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            variant: CmButtonVariant.ghost,
+            fontSize: 14,
+            padding: const EdgeInsets.symmetric(vertical: 14),
             fullWidth: true,
             onTap: () => _handleQuit(game),
           ),
@@ -485,10 +410,10 @@ class _BattleScreenState extends State<BattleScreen>
           flex: 2,
           child: GradientButton(
             label: '続行',
-            variant: CmButtonVariant.crimson,
-            fontSize: 14,
-            letterSpacing: 4,
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            icon: Icons.replay,
+            variant: CmButtonVariant.yellow,
+            fontSize: 15,
+            padding: const EdgeInsets.symmetric(vertical: 14),
             fullWidth: true,
             onTap: () => _handleContinue(game),
           ),
@@ -498,80 +423,62 @@ class _BattleScreenState extends State<BattleScreen>
   }
 }
 
-class _CardWithLabel extends StatelessWidget {
-  final String label;
-  final Color labelColor;
-  final double rotation;
-  final Widget child;
-  const _CardWithLabel({
-    required this.label,
-    required this.labelColor,
-    required this.rotation,
-    required this.child,
-  });
+class _DarkTopBar extends StatelessWidget {
+  final String title;
+  const _DarkTopBar({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: rotation,
-      child: Stack(
-        clipBehavior: Clip.none,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 4, 18, 10),
+      child: Row(
         children: [
-          child,
-          Positioned(
-            top: -14,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-              decoration: BoxDecoration(
-                color: labelColor.withOpacity(0.9),
-                border: Border.all(color: AppColors.gold, width: 0.5),
-              ),
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: AppFonts.cinzel,
-                  color: AppColors.goldLight,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 3,
-                ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: AppFonts.gothic,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                letterSpacing: 4,
               ),
             ),
           ),
+          const SizedBox(width: 24),
         ],
       ),
     );
   }
 }
 
-class _TaiSymbol extends StatelessWidget {
+class _VsBadge extends StatelessWidget {
+  const _VsBadge();
+
   @override
   Widget build(BuildContext context) {
     return ShaderMask(
       shaderCallback: (rect) => const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          AppColors.goldLight,
-          AppColors.seal,
-          AppColors.sealDeep,
-        ],
-        stops: [0.0, 0.6, 1.0],
+        colors: [Color(0xFFFFE27A), AppColors.yellowDeep],
       ).createShader(rect),
       child: Text(
         'VS',
         style: TextStyle(
-          fontFamily: AppFonts.cinzel,
-          fontSize: 140,
+          fontFamily: AppFonts.gothic,
+          fontSize: 44,
           fontWeight: FontWeight.w900,
-          height: 1,
-          letterSpacing: 4,
+          fontStyle: FontStyle.italic,
           color: Colors.white,
+          height: 1,
           shadows: [
             Shadow(
-              color: Colors.black.withOpacity(0.5),
-              offset: const Offset(0, 4),
+              color: AppColors.yellowDeep.withValues(alpha: 0.5),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -580,29 +487,121 @@ class _TaiSymbol extends StatelessWidget {
   }
 }
 
-class _OracleSpinner extends StatelessWidget {
+class _DarkSpinner extends StatelessWidget {
   final String text;
-  const _OracleSpinner({required this.text});
+  const _DarkSpinner({required this.text});
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.darkPanel,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.yellow,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LightSpinner extends StatelessWidget {
+  final String text;
+  const _LightSpinner({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.yellow,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              color: AppColors.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultHeader extends StatelessWidget {
+  final bool isWin;
+  final bool isDraw;
+  const _ResultHeader({required this.isWin, required this.isDraw});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = isDraw ? '引き分け' : (isWin ? '勝利' : '敗北');
+    final color = isDraw
+        ? AppColors.inkMid
+        : (isWin ? AppColors.win : AppColors.red);
+    final subtitle = isDraw
+        ? '互角の勝負でした'
+        : (isWin
+            ? 'あなたのモンスターが勝ちました'
+            : 'あなたのモンスターは破れました');
     return Column(
       children: [
-        const SizedBox(
-          width: 26,
-          height: 26,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: AppColors.goldLight,
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppFonts.gothic,
+            fontSize: 34,
+            fontWeight: FontWeight.w900,
+            color: color,
+            letterSpacing: 3,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 2),
         Text(
-          text,
+          subtitle,
           style: const TextStyle(
-            fontFamily: AppFonts.mincho,
-            color: AppColors.inkSoft,
-            letterSpacing: 4,
+            fontFamily: AppFonts.gothic,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.inkMid,
           ),
         ),
       ],
@@ -610,125 +609,147 @@ class _OracleSpinner extends StatelessWidget {
   }
 }
 
-class _ParchmentResultPanel extends StatelessWidget {
-  final String outcomeLabel;
-  final String sealLabel;
-  final dynamic player;
-  final dynamic enemy;
+class _ResultHeroCard extends StatelessWidget {
+  final Monster monster;
+  const _ResultHeroCard({required this.monster});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 280,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: MonsterArt(imageBytes: monster.imageBytes, radius: 20),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 30, 16, 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    AppColors.dark.withValues(alpha: 0.95),
+                  ],
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    monster.name,
+                    style: TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '「${monster.specialAbility}」',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MatchupSummary extends StatelessWidget {
+  final Monster player;
+  final Monster enemy;
   final bool playerFaded;
   final bool enemyFaded;
-  final String narration;
-  final String? stageInfo;
-
-  const _ParchmentResultPanel({
-    required this.outcomeLabel,
-    required this.sealLabel,
+  const _MatchupSummary({
     required this.player,
     required this.enemy,
     required this.playerFaded,
     required this.enemyFaded,
-    required this.narration,
-    this.stageInfo,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF0E2C0), Color(0xFFD8C298)],
-        ),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: AppColors.goldDeep),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.45),
-            blurRadius: 22,
-            offset: const Offset(0, 6),
-          ),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _MiniStats(monster: player, faded: playerFaded, label: 'YOU')),
+          Container(width: 1, height: 40, color: AppColors.line),
+          Expanded(child: _MiniStats(monster: enemy, faded: enemyFaded, label: 'ENEMY')),
         ],
       ),
+    );
+  }
+}
+
+class _MiniStats extends StatelessWidget {
+  final Monster monster;
+  final bool faded;
+  final String label;
+  const _MiniStats({required this.monster, required this.faded, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: faded ? 0.45 : 1.0,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      outcomeLabel,
-                      style: const TextStyle(
-                        fontFamily: AppFonts.cinzel,
-                        color: AppColors.sealDeep,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                    if (stageInfo != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        stageInfo!,
-                        style: const TextStyle(
-                          fontFamily: AppFonts.cinzel,
-                          color: AppColors.inkSoftDark,
-                          fontSize: 11,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              WaxSeal(label: sealLabel, size: 76, rotation: -0.14),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              MonsterCard(monster: player, scale: 0.42, faded: playerFaded),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'VS',
-                  style: TextStyle(
-                    fontFamily: AppFonts.cinzel,
-                    color: AppColors.sealDeep,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-              MonsterCard(monster: enemy, scale: 0.42, faded: enemyFaded),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.goldDeep, width: 0.5),
-              ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: AppColors.inkSoft,
+              letterSpacing: 2,
             ),
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(
-              narration,
-              textAlign: TextAlign.justify,
-              style: const TextStyle(
-                fontFamily: AppFonts.mincho,
-                color: AppColors.inkDark,
-                fontSize: 13,
-                height: 1.9,
-                letterSpacing: 0.5,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            monster.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'ATK ${monster.atk} / DEF ${monster.def}',
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.inkMid,
+              fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
         ],

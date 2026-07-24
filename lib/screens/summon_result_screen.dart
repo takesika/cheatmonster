@@ -4,12 +4,9 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
-import '../widgets/arcane_circle.dart';
-import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
-import '../widgets/monster_card.dart';
-import '../widgets/wax_seal.dart';
+import '../widgets/monster_art.dart';
 
 class SummonResultScreen extends StatefulWidget {
   const SummonResultScreen({super.key});
@@ -30,19 +27,19 @@ class _SummonResultScreenState extends State<SummonResultScreen>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 900),
     );
-    _scaleAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
     );
     _opacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
       ),
     );
 
-    Future.delayed(const Duration(milliseconds: 700), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() => _showCard = true);
         _animController.forward();
@@ -67,102 +64,98 @@ class _SummonResultScreenState extends State<SummonResultScreen>
               final monster = game.playerMonster;
               if (monster == null) {
                 return const Center(
-                  child: CircularProgressIndicator(color: AppColors.gold),
+                  child: CircularProgressIndicator(color: AppColors.yellow),
                 );
               }
 
-              return Stack(
-                children: [
-                  const Positioned.fill(
-                    child: Center(
-                      child: ArcaneCircle(size: 380, opacity: 0.22),
-                    ),
-                  ),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight - 48),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ShaderMask(
-                                shaderCallback: (rect) => const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    AppColors.goldLight,
-                                    AppColors.gold,
-                                    AppColors.goldDeep
-                                  ],
-                                ).createShader(rect),
-                                child: const Text(
-                                  '召喚成功',
-                                  style: TextStyle(
-                                    fontFamily: AppFonts.mincho,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 6,
-                                    color: Colors.white,
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight - 32),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 8),
+                            const _SuccessTitle(),
+                            const SizedBox(height: 20),
+                            !_showCard
+                                ? _SummoningEffect()
+                                : AnimatedBuilder(
+                                    animation: _animController,
+                                    builder: (context, _) {
+                                      return Opacity(
+                                        opacity: _opacityAnim.value,
+                                        child: Transform.scale(
+                                          scale: _scaleAnim.value,
+                                          child: _MonsterHero(
+                                            imageBytes: monster.imageBytes,
+                                            loading: game.isGeneratingImage,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
+                            if (_showCard) ...[
+                              const SizedBox(height: 18),
+                              Text(
+                                monster.name,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: AppFonts.gothic,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.inkMid,
                                 ),
                               ),
-                              const SizedBox(height: 10),
-                              const FleurDivider(small: true),
-                              const SizedBox(height: 24),
-                              !_showCard
-                                  ? _SummoningEffect()
-                                  : AnimatedBuilder(
-                                      animation: _animController,
-                                      builder: (context, _) {
-                                        return Opacity(
-                                          opacity: _opacityAnim.value,
-                                          child: Transform.scale(
-                                            scale: _scaleAnim.value,
-                                            child: MonsterCard(
-                                              monster: monster,
-                                              isLoading: game.isGeneratingImage,
-                                              scale: 1.0,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                              const SizedBox(height: 24),
-                              game.isGeneratingImage
-                                  ? const Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(vertical: 18),
-                                      child: Text(
-                                        '画像を生成中...',
-                                        style: TextStyle(
-                                          fontFamily: AppFonts.mincho,
-                                          color: AppColors.inkSoft,
-                                          letterSpacing: 2,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    )
-                                  : GradientButton(
-                                      label: isOnline ? '準備完了' : 'バトルへ',
-                                      variant: CmButtonVariant.crimson,
-                                      fontSize: 16,
-                                      letterSpacing: 6,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 16),
-                                      fullWidth: true,
-                                      onTap: () => _onContinue(
-                                          context, game, isOnline),
-                                    ),
+                              const SizedBox(height: 6),
+                              AbilityLine(
+                                text: monster.specialAbility,
+                                size: 22,
+                              ),
+                              const SizedBox(height: 18),
+                              StatCards(atk: monster.atk, def: monster.def),
                             ],
-                          ),
+                            const Spacer(),
+                            const SizedBox(height: 20),
+                            game.isGeneratingImage
+                                ? const Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 16),
+                                    child: Text(
+                                      '画像を生成中...',
+                                      style: TextStyle(
+                                        fontFamily: AppFonts.gothic,
+                                        color: AppColors.inkSoft,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )
+                                : GradientButton(
+                                    label: isOnline ? '準備完了' : 'バトルへ',
+                                    icon: isOnline
+                                        ? Icons.check
+                                        : Icons.sports_kabaddi,
+                                    variant: CmButtonVariant.yellow,
+                                    fontSize: 17,
+                                    letterSpacing: 1.2,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 18),
+                                    fullWidth: true,
+                                    onTap: () =>
+                                        _onContinue(context, game, isOnline),
+                                  ),
+                          ],
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -193,6 +186,104 @@ class _SummonResultScreenState extends State<SummonResultScreen>
   }
 }
 
+class _SuccessTitle extends StatelessWidget {
+  const _SuccessTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        const Positioned(
+          left: 40,
+          top: -2,
+          child: _Sparkle(size: 20),
+        ),
+        const Positioned(
+          right: 40,
+          top: 4,
+          child: _Sparkle(size: 16, delayMs: 300),
+        ),
+        const Text(
+          '召喚成功！',
+          style: TextStyle(
+            fontFamily: AppFonts.gothic,
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            color: AppColors.ink,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Sparkle extends StatefulWidget {
+  final double size;
+  final int delayMs;
+  const _Sparkle({required this.size, this.delayMs = 0});
+
+  @override
+  State<_Sparkle> createState() => _SparkleState();
+}
+
+class _SparkleState extends State<_Sparkle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: widget.delayMs), () {
+      if (mounted) _ctrl.repeat(reverse: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        return Opacity(
+          opacity: 0.4 + 0.6 * _ctrl.value,
+          child: Transform.scale(
+            scale: 0.9 + 0.25 * _ctrl.value,
+            child: Text('✨', style: TextStyle(fontSize: widget.size)),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MonsterHero extends StatelessWidget {
+  final dynamic imageBytes;
+  final bool loading;
+  const _MonsterHero({required this.imageBytes, required this.loading});
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 1,
+      child: MonsterArt(
+        imageBytes: imageBytes,
+        loading: loading,
+        radius: 22,
+      ),
+    );
+  }
+}
+
 class _SummoningEffect extends StatefulWidget {
   @override
   State<_SummoningEffect> createState() => _SummoningEffectState();
@@ -213,50 +304,48 @@ class _SummoningEffectState extends State<_SummoningEffect>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: _ctrl,
-          builder: (_, __) {
-            final t = _ctrl.value;
-            return Container(
-              width: 130,
-              height: 130,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.goldGlow.withOpacity(0.3 + 0.4 * t),
-                    blurRadius: 40 + 20 * t,
-                    spreadRadius: 10 + 10 * t,
+    return AspectRatio(
+      aspectRatio: 1,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.yellowSoft,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Transform.scale(
+                    scale: 0.9 + 0.2 * _ctrl.value,
+                    child: Text(
+                      '✨',
+                      style: TextStyle(
+                        fontSize: 64,
+                        color: AppColors.yellowDeep
+                            .withValues(alpha: 0.6 + 0.4 * _ctrl.value),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    '召喚中...',
+                    style: TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      color: AppColors.inkMid,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ],
-              ),
-              child: Center(
-                child: Text(
-                  '✦',
-                  style: TextStyle(
-                    fontSize: 60,
-                    color: AppColors.goldLight.withOpacity(0.6 + 0.4 * t),
-                    fontFamily: AppFonts.cinzel,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 28),
-        const Text(
-          '召喚中...',
-          style: TextStyle(
-            fontFamily: AppFonts.mincho,
-            color: AppColors.goldLight,
-            fontSize: 16,
-            letterSpacing: 4,
+              );
+            },
           ),
         ),
-      ],
+      ),
     );
   }
 }
