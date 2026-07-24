@@ -438,15 +438,33 @@ class _BattleScreenState extends State<BattleScreen>
     if (_waitingForOpponentChoice) {
       return const _OracleSpinner(text: '相手の選択を待っています...');
     }
-    if (game.onlineBattleCount >= GameConstants.maxOnlineBattles) {
-      return GradientButton(
-        label: '終わる',
-        variant: CmButtonVariant.gold,
-        fontSize: 14,
-        letterSpacing: 4,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        fullWidth: true,
-        onTap: () => _handleQuit(game),
+    if (game.onlineBattleCount >= GameConstants.maxOnlineBattles ||
+        game.remainingBattles <= 0) {
+      return Column(
+        children: [
+          if (game.remainingBattles <= 0)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                '本日の召喚権を使い切りました',
+                style: TextStyle(
+                  fontFamily: AppFonts.mincho,
+                  color: AppColors.inkSoft,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+          GradientButton(
+            label: '終わる',
+            variant: CmButtonVariant.gold,
+            fontSize: 14,
+            letterSpacing: 4,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            fullWidth: true,
+            onTap: () => _handleQuit(game),
+          ),
+        ],
       );
     }
     return Row(

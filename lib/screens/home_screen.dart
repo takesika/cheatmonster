@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
+import '../services/battle_limit_service.dart';
 import '../widgets/arcane_circle.dart';
 import '../widgets/fleur_divider.dart';
 import '../widgets/game_background.dart';
@@ -33,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Consumer<GameProvider>(
             builder: (context, game, _) {
               final remaining = game.remainingBattles;
-              const total = 5;
+              const total = BattleLimitService.maxBattlesPerDay;
               final canPlay = remaining > 0;
 
               return Stack(
@@ -81,12 +82,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 SizedBox(height: 12 * scale),
                                 _ModeCard(
                                   label: 'オンライン対戦',
-                                  enabled: true,
-                                  onTap: () {
-                                    game.reset();
-                                    game.setGameMode(GameMode.online);
-                                    Navigator.pushNamed(context, '/room');
-                                  },
+                                  enabled: canPlay,
+                                  onTap: canPlay
+                                      ? () {
+                                          game.reset();
+                                          game.setGameMode(GameMode.online);
+                                          Navigator.pushNamed(context, '/room');
+                                        }
+                                      : null,
                                 ),
                                 SizedBox(height: 18 * scale),
                                 _DailySigils(remaining: remaining, total: total),

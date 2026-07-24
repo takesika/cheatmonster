@@ -159,6 +159,10 @@ class GameProvider extends ChangeNotifier {
 
   Future<void> startOnlineBattle() async {
     if (playerMonster == null || cpuMonster == null) return;
+    if (!await canBattle()) return;
+
+    await _battleLimitService.recordBattle();
+    remainingBattles = await _battleLimitService.getRemainingBattles();
 
     onlineBattleCount++;
     isBattling = true;
