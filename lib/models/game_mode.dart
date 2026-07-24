@@ -1,1 +1,1 @@
-enum GameMode { cpu, online }
+enum GameMode { cpu, online, throne }

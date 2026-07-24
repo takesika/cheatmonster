@@ -38,6 +38,12 @@ class _SummonScreenState extends State<SummonScreen> {
     final game = context.read<GameProvider>();
     final isOnline = game.gameMode == GameMode.online;
     final isTowerStage = !isOnline && game.cpuStage >= 2;
+    final isThrone = game.gameMode == GameMode.throne;
+    final String? chip = isTowerStage
+        ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
+        : isThrone
+            ? '王座挑戦'
+            : null;
 
     return Scaffold(
       body: GameBackground(
@@ -45,11 +51,9 @@ class _SummonScreenState extends State<SummonScreen> {
           child: Column(
             children: [
               _TopBar(
-                title: '新しいモンスターをつくる',
+                title: isThrone ? '挑戦者を召喚' : '新しいモンスターをつくる',
                 onBack: () => Navigator.maybePop(context),
-                stageChip: isTowerStage
-                    ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
-                    : null,
+                stageChip: chip,
               ),
               Expanded(
                 child: SingleChildScrollView(

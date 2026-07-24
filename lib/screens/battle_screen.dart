@@ -101,7 +101,9 @@ class _BattleScreenState extends State<BattleScreen>
   Widget _buildArenaLayout(BuildContext context, GameProvider game) {
     final stageInfo = game.gameMode == GameMode.cpu
         ? 'STAGE ${game.cpuStage} / ${GameConstants.maxCpuStages}'
-        : 'BATTLE ${game.onlineBattleCount + 1} / ${GameConstants.maxOnlineBattles}';
+        : game.gameMode == GameMode.throne
+            ? '王座戦'
+            : 'BATTLE ${game.onlineBattleCount + 1} / ${GameConstants.maxOnlineBattles}';
 
     return Column(
       children: [
@@ -155,6 +157,7 @@ class _BattleScreenState extends State<BattleScreen>
       return const _DarkSpinner(text: 'AIがジャッジ中...');
     }
     final isOnline = game.gameMode == GameMode.online;
+    final isThrone = game.gameMode == GameMode.throne;
     final isPlayer2 = isOnline && game.playerNumber == 2;
     if (isPlayer2) {
       if (!game.isBattling && game.battleResult == null) {
@@ -173,7 +176,9 @@ class _BattleScreenState extends State<BattleScreen>
       padding: const EdgeInsets.symmetric(vertical: 18),
       fullWidth: true,
       onTap: () {
-        if (isOnline) {
+        if (isThrone) {
+          game.startThroneBattle();
+        } else if (isOnline) {
           game.startOnlineBattle();
         } else {
           game.startBattle();
@@ -231,12 +236,67 @@ class _BattleScreenState extends State<BattleScreen>
             ),
           ),
           const SizedBox(height: 12),
-          if (isOnline)
+          if (game.gameMode == GameMode.throne)
+            _buildThroneButtons(context, game)
+          else if (isOnline)
             _buildOnlineButtons(context, game)
           else
             _buildCpuButtons(context, game, outcome),
         ],
       ),
+    );
+  }
+
+  Widget _buildThroneButtons(BuildContext context, GameProvider game) {
+    final outcome = game.battleResult!.outcome;
+    final crowned = game.throneCrowned;
+    final outdated = game.throneOutdated;
+    final label = crowned
+        ? '王座に君臨した'
+        : outdated
+            ? '王者は交代済み'
+            : outcome == BattleOutcome.win
+                ? '王座への昇格に失敗'
+                : outcome == BattleOutcome.draw
+                    ? '引き分け — 王座は守られた'
+                    : '王者に敗北した';
+    final color = crowned
+        ? AppColors.win
+        : (outdated || outcome != BattleOutcome.win
+            ? AppColors.inkMid
+            : AppColors.red);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ),
+        GradientButton(
+          label: '王者を見る',
+          icon: Icons.emoji_events_outlined,
+          variant: CmButtonVariant.yellow,
+          fontSize: 15,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          fullWidth: true,
+          onTap: () {
+            game.resetForNextBattle();
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/throne',
+              ModalRoute.withName('/'),
+            );
+          },
+        ),
+      ],
     );
   }
 

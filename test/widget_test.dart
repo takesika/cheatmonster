@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:card_game/models/monster.dart';
-import 'package:card_game/models/game_mode.dart';
 import 'package:card_game/models/battle_result.dart';
+import 'package:card_game/models/champion.dart';
+import 'package:card_game/models/game_mode.dart';
+import 'package:card_game/models/monster.dart';
 
 void main() {
   group('Monster', () {
@@ -55,10 +56,53 @@ void main() {
   });
 
   group('GameMode', () {
-    test('has cpu and online values', () {
-      expect(GameMode.values.length, 2);
+    test('has cpu, online, throne values', () {
+      expect(GameMode.values.length, 3);
       expect(GameMode.values.contains(GameMode.cpu), true);
       expect(GameMode.values.contains(GameMode.online), true);
+      expect(GameMode.values.contains(GameMode.throne), true);
+    });
+  });
+
+  group('Champion', () {
+    test('fromRaw returns null when raw is null', () {
+      expect(Champion.fromRaw(null), isNull);
+    });
+
+    test('fromRaw parses a well-formed map', () {
+      final champ = Champion.fromRaw({
+        'name': 'ChampMonster',
+        'atk': 80,
+        'def': 60,
+        'specialAbility': 'buy the judge',
+        'updatedAt': 1234567890,
+      });
+      expect(champ, isNotNull);
+      expect(champ!.monster.name, 'ChampMonster');
+      expect(champ.monster.atk, 80);
+      expect(champ.monster.def, 60);
+      expect(champ.monster.specialAbility, 'buy the judge');
+      expect(champ.updatedAt, 1234567890);
+      expect(champ.monster.imageBytes, isNull);
+    });
+
+    test('toJson round-trip via fromRaw preserves scalar fields', () {
+      final original = Champion(
+        monster: Monster(
+          name: 'RoundTrip',
+          atk: 55,
+          def: 45,
+          specialAbility: 'time rewind',
+        ),
+        updatedAt: 42,
+      );
+      final restored = Champion.fromRaw(original.toJson());
+      expect(restored, isNotNull);
+      expect(restored!.monster.name, 'RoundTrip');
+      expect(restored.monster.atk, 55);
+      expect(restored.monster.def, 45);
+      expect(restored.monster.specialAbility, 'time rewind');
+      expect(restored.updatedAt, 42);
     });
   });
 

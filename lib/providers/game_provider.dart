@@ -3,9 +3,11 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 
 import '../models/battle_result.dart';
+import '../models/champion.dart';
 import '../models/game_mode.dart';
 import '../models/monster.dart';
 import '../services/battle_limit_service.dart';
+import '../services/champion_service.dart';
 import '../services/cpu_opponent_service.dart';
 import '../services/gemini_service.dart';
 import '../services/pvp_record_service.dart';
@@ -33,6 +35,7 @@ class GameProvider extends ChangeNotifier {
   final _battleLimitService = BattleLimitService();
   final _pvpRecordService = PvpRecordService();
   final _roomService = RoomService();
+  final _championService = ChampionService();
   final _rng = Random();
 
   int remainingBattles = 5;
@@ -45,6 +48,13 @@ class GameProvider extends ChangeNotifier {
   int opponentPvpTotalMatches = 0;
 
   int onlineBattleCount = 0;
+
+  // Throne mode state.
+  Champion? currentChampion;
+  bool isLoadingChampion = false;
+  bool throneCrowned = false;
+  bool throneOutdated = false;
+  String? throneErrorMessage;
 
   Future<void> loadRemainingBattles() async {
     remainingBattles = await _battleLimitService.getRemainingBattles();
@@ -82,6 +92,15 @@ class GameProvider extends ChangeNotifier {
 
     if (gameMode == GameMode.online) {
       await createPlayerMonsterOnline(name, specialAbility);
+      return;
+    }
+
+    if (gameMode == GameMode.throne) {
+      // The champion is the opponent — no CPU generation needed.
+      cpuMonster = currentChampion?.monster;
+      isGeneratingImage = true;
+      notifyListeners();
+      await _generatePlayerImage(name, specialAbility);
       return;
     }
 
@@ -321,6 +340,127 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
+  // ── Throne mode ──
+
+  Future<void> loadChampion() async {
+    isLoadingChampion = true;
+    throneErrorMessage = null;
+    notifyListeners();
+    try {
+      currentChampion = await _championService.fetchChampion();
+    } catch (_) {
+      throneErrorMessage = '王者情報の取得に失敗しました';
+    } finally {
+      isLoadingChampion = false;
+      notifyListeners();
+    }
+  }
+
+  /// Crown the challenger as the first champion (no battle needed).
+  /// Returns true on success.
+  Future<bool> crownAsFirstChampion() async {
+    if (playerMonster == null) return false;
+    final result = await _championService.crown(
+      challenger: playerMonster!,
+      expectedPreviousUpdatedAt: 0,
+    );
+    if (result == CrownResult.crowned) {
+      throneCrowned = true;
+      // Reflect newly-crowned champion locally.
+      await loadChampion();
+      return true;
+    } else if (result == CrownResult.outdated) {
+      throneOutdated = true;
+      throneErrorMessage = '初代王者は既に決まりました';
+      await loadChampion();
+      notifyListeners();
+      return false;
+    } else {
+      throneErrorMessage = '王者データの保存に失敗しました';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> startThroneBattle() async {
+    if (playerMonster == null) return;
+    if (currentChampion == null) return;
+    if (!await canBattle()) {
+      throneErrorMessage = '本日の召喚権を使い切りました';
+      notifyListeners();
+      return;
+    }
+
+    // Fetch fresh champion to reject stale duplicate-ability challenges early.
+    Champion? fresh;
+    try {
+      fresh = await _championService.fetchChampion();
+    } catch (_) {
+      throneErrorMessage = '王者情報の取得に失敗しました';
+      notifyListeners();
+      return;
+    }
+    if (fresh == null) {
+      throneErrorMessage = '王者情報が見つかりません';
+      notifyListeners();
+      return;
+    }
+    if (fresh.monster.specialAbility == playerMonster!.specialAbility) {
+      throneErrorMessage = '同じチート能力では挑戦できません';
+      notifyListeners();
+      return;
+    }
+    // Use the fresh champion for judging so the fight matches what's on the
+    // throne right now (avoids race with the caller's initial snapshot).
+    currentChampion = fresh;
+    cpuMonster = fresh.monster;
+
+    isBattling = true;
+    notifyListeners();
+
+    await _battleLimitService.recordBattle();
+    remainingBattles = await _battleLimitService.getRemainingBattles();
+
+    try {
+      battleResult = await _geminiService.judgeBattle(
+        playerMonster!,
+        fresh.monster,
+      );
+    } catch (_) {
+      battleResult = _createFallbackResult();
+    }
+
+    // On win, try to crown. Draws and losses leave the throne unchanged.
+    if (battleResult!.outcome == BattleOutcome.win) {
+      final result = await _championService.crown(
+        challenger: playerMonster!,
+        expectedPreviousUpdatedAt: fresh.updatedAt,
+      );
+      if (result == CrownResult.crowned) {
+        throneCrowned = true;
+      } else if (result == CrownResult.outdated) {
+        throneOutdated = true;
+        throneErrorMessage = '判定中に王者が交代しました';
+        await _battleLimitService.refundBattle();
+        remainingBattles = await _battleLimitService.getRemainingBattles();
+        await loadChampion();
+      } else {
+        throneErrorMessage = '王者データの更新に失敗しました';
+        await _battleLimitService.refundBattle();
+        remainingBattles = await _battleLimitService.getRemainingBattles();
+      }
+    }
+
+    isBattling = false;
+    notifyListeners();
+  }
+
+  void resetThroneFlags() {
+    throneCrowned = false;
+    throneOutdated = false;
+    throneErrorMessage = null;
+  }
+
   void resetForNextCpuStage() {
     playerAbilityHistory.add(playerMonster!.specialAbility);
     cpuStage++;
@@ -347,6 +487,9 @@ class GameProvider extends ChangeNotifier {
     onlineBattleCount = 0;
     opponentPvpWins = 0;
     opponentPvpTotalMatches = 0;
+    throneCrowned = false;
+    throneOutdated = false;
+    throneErrorMessage = null;
     notifyListeners();
   }
 }

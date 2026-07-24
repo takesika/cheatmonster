@@ -61,6 +61,9 @@ class _SummonResultScreenState extends State<SummonResultScreen>
           child: Consumer<GameProvider>(
             builder: (context, game, _) {
               final isOnline = game.gameMode == GameMode.online;
+              final isThrone = game.gameMode == GameMode.throne;
+              final noChampionYet =
+                  isThrone && game.currentChampion == null;
               final monster = game.playerMonster;
               if (monster == null) {
                 return const Center(
@@ -137,18 +140,23 @@ class _SummonResultScreenState extends State<SummonResultScreen>
                                     ),
                                   )
                                 : GradientButton(
-                                    label: isOnline ? '準備完了' : 'バトルへ',
-                                    icon: isOnline
-                                        ? Icons.check
-                                        : Icons.sports_kabaddi,
+                                    label: _ctaLabel(
+                                        isOnline, isThrone, noChampionYet),
+                                    icon: _ctaIcon(
+                                        isOnline, isThrone, noChampionYet),
                                     variant: CmButtonVariant.yellow,
                                     fontSize: 17,
                                     letterSpacing: 1.2,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 18),
                                     fullWidth: true,
-                                    onTap: () =>
-                                        _onContinue(context, game, isOnline),
+                                    onTap: () => _onContinue(
+                                      context,
+                                      game,
+                                      isOnline: isOnline,
+                                      isThrone: isThrone,
+                                      noChampionYet: noChampionYet,
+                                    ),
                                   ),
                           ],
                         ),
@@ -164,8 +172,26 @@ class _SummonResultScreenState extends State<SummonResultScreen>
     );
   }
 
+  String _ctaLabel(bool isOnline, bool isThrone, bool noChampionYet) {
+    if (isOnline) return '準備完了';
+    if (isThrone && noChampionYet) return '王座に君臨する';
+    if (isThrone) return '王者に挑戦';
+    return 'バトルへ';
+  }
+
+  IconData _ctaIcon(bool isOnline, bool isThrone, bool noChampionYet) {
+    if (isOnline) return Icons.check;
+    if (isThrone && noChampionYet) return Icons.auto_awesome;
+    return Icons.sports_kabaddi;
+  }
+
   Future<void> _onContinue(
-      BuildContext context, GameProvider game, bool isOnline) async {
+    BuildContext context,
+    GameProvider game, {
+    required bool isOnline,
+    required bool isThrone,
+    required bool noChampionYet,
+  }) async {
     if (isOnline) {
       try {
         await game.submitMonster();
@@ -180,9 +206,27 @@ class _SummonResultScreenState extends State<SummonResultScreen>
       if (context.mounted) {
         Navigator.pushNamed(context, '/waiting');
       }
-    } else {
-      Navigator.pushNamed(context, '/battle');
+      return;
     }
+
+    if (isThrone && noChampionYet) {
+      final ok = await game.crownAsFirstChampion();
+      if (!context.mounted) return;
+      if (ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('初代王者に君臨した！')),
+        );
+      } else if (game.throneErrorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(game.throneErrorMessage!)),
+        );
+      }
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/throne', ModalRoute.withName('/'));
+      return;
+    }
+
+    Navigator.pushNamed(context, '/battle');
   }
 }
 

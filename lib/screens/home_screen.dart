@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +24,11 @@ class _HomeScreenState extends State<HomeScreen> {
     context.read<GameProvider>().loadPvpRecord();
   }
 
+  void _openThrone(BuildContext context) {
+    context.read<GameProvider>().reset();
+    Navigator.pushNamed(context, '/throne');
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = AppScale.of(context);
@@ -38,75 +45,49 @@ class _HomeScreenState extends State<HomeScreen> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                     child: ConstrainedBox(
                       constraints:
-                          BoxConstraints(minHeight: constraints.maxHeight),
+                          BoxConstraints(minHeight: constraints.maxHeight - 20),
                       child: IntrinsicHeight(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Top bar with challenge chip
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                _ChallengeChip(
-                                    remaining: remaining, total: total),
-                              ],
-                            ),
-                            SizedBox(height: 20 * scale),
-
-                            // Logo block
-                            const _Crown(size: 26, color: AppColors.yellowDeep),
+                            _TopBar(remaining: remaining, total: total),
                             SizedBox(height: 6 * scale),
+                            const _Crown(size: 24, color: AppColors.yellowDeep),
+                            SizedBox(height: 4 * scale),
                             _Logo(scale: scale),
-                            SizedBox(height: 6 * scale),
+                            SizedBox(height: 4 * scale),
                             const _SubTitle(),
-                            SizedBox(height: 8 * scale),
+                            SizedBox(height: 6 * scale),
                             const _Tagline(),
-
-                            const Spacer(),
-
-                            // Mode buttons
-                            _ModeButton(
-                              icon: '⚔',
-                              label: 'つくって戦う',
-                              subtitle: 'モンスターを作って挑戦',
-                              primary: true,
-                              enabled: canPlay,
-                              onTap: canPlay
-                                  ? () {
-                                      game.reset();
-                                      Navigator.pushNamed(context, '/summon');
-                                    }
-                                  : null,
+                            SizedBox(height: 18 * scale),
+                            const _ChampionShowcase(),
+                            SizedBox(height: 20 * scale),
+                            _ThroneCta(onTap: () => _openThrone(context)),
+                            SizedBox(height: 10 * scale),
+                            _ModeButtonRow(
+                              canPlay: canPlay,
+                              onCpuTap: () {
+                                game.reset();
+                                Navigator.pushNamed(context, '/summon');
+                              },
+                              onOnlineTap: () {
+                                game.reset();
+                                game.setGameMode(GameMode.online);
+                                Navigator.pushNamed(context, '/room');
+                              },
                             ),
-                            SizedBox(height: 12 * scale),
-                            _ModeButton(
-                              icon: '👥',
-                              label: '友達と戦う',
-                              subtitle: 'オンラインで対戦',
-                              primary: false,
-                              enabled: canPlay,
-                              onTap: canPlay
-                                  ? () {
-                                      game.reset();
-                                      game.setGameMode(GameMode.online);
-                                      Navigator.pushNamed(context, '/room');
-                                    }
-                                  : null,
-                            ),
-
                             if (game.pvpTotalMatches > 0) ...[
-                              SizedBox(height: 16 * scale),
+                              SizedBox(height: 12 * scale),
                               _PvpRecord(
                                 wins: game.pvpWins,
                                 plays: game.pvpTotalMatches,
                               ),
                             ],
-
                             if (!canPlay) ...[
-                              SizedBox(height: 12 * scale),
+                              SizedBox(height: 10 * scale),
                               const Center(
                                 child: Text(
                                   '明日また挑戦できます',
@@ -119,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ],
-                            SizedBox(height: 8 * scale),
+                            const SizedBox(height: 8),
                           ],
                         ),
                       ),
@@ -128,6 +109,65 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  final int remaining;
+  final int total;
+  const _TopBar({required this.remaining, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const _RankingButton(),
+        _ChallengeChip(remaining: remaining, total: total),
+      ],
+    );
+  }
+}
+
+class _RankingButton extends StatelessWidget {
+  const _RankingButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ランキングは近日公開予定'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_outlined,
+                  size: 16, color: AppColors.inkMid),
+              const SizedBox(width: 4),
+              const Text(
+                'ランキング',
+                style: TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.inkMid,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -268,7 +308,7 @@ class _Tagline extends StatelessWidget {
       textAlign: TextAlign.center,
       style: TextStyle(
         fontFamily: AppFonts.gothic,
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
         color: AppColors.inkMid,
       ),
@@ -276,31 +316,233 @@ class _Tagline extends StatelessWidget {
   }
 }
 
-class _ModeButton extends StatelessWidget {
+/// Big decorative area showing "current champion" placeholder.
+/// Nothing to click — visual weight for the layout.
+class _ChampionShowcase extends StatefulWidget {
+  const _ChampionShowcase();
+
+  @override
+  State<_ChampionShowcase> createState() => _ChampionShowcaseState();
+}
+
+class _ChampionShowcaseState extends State<_ChampionShowcase>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 4),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 220,
+        height: 220,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: _ctrl,
+              builder: (_, __) {
+                return CustomPaint(
+                  size: const Size(220, 220),
+                  painter: _HaloPainter(rotation: _ctrl.value * 2 * math.pi),
+                );
+              },
+            ),
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  center: Alignment(0, -0.2),
+                  colors: [
+                    AppColors.yellowSoft,
+                    AppColors.yellow,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.yellow.withValues(alpha: 0.4),
+                    blurRadius: 30,
+                    spreadRadius: 4,
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: _Crown(size: 72, color: Color(0xFF6B4E00)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HaloPainter extends CustomPainter {
+  final double rotation;
+  _HaloPainter({required this.rotation});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final r = size.width / 2;
+
+    final ring = Paint()
+      ..color = AppColors.yellow.withValues(alpha: 0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(center, r - 6, ring);
+    canvas.drawCircle(center, r - 20, ring);
+
+    // sparkles rotating around
+    final sparkle = Paint()..color = AppColors.yellowDeep;
+    for (int i = 0; i < 6; i++) {
+      final a = rotation + i * (math.pi / 3);
+      final p = Offset(center.dx + math.cos(a) * (r - 10),
+          center.dy + math.sin(a) * (r - 10));
+      canvas.drawCircle(p, 3, sparkle);
+    }
+    final sparkle2 = Paint()
+      ..color = AppColors.yellowDeep.withValues(alpha: 0.5);
+    for (int i = 0; i < 12; i++) {
+      final a = -rotation * 0.6 + i * (math.pi / 6);
+      final p = Offset(center.dx + math.cos(a) * (r - 24),
+          center.dy + math.sin(a) * (r - 24));
+      canvas.drawCircle(p, 1.5, sparkle2);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HaloPainter oldDelegate) =>
+      oldDelegate.rotation != rotation;
+}
+
+class _ThroneCta extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ThroneCta({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            color: AppColors.yellow,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.yellow.withValues(alpha: 0.4),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  _Crown(size: 20, color: Color(0xFF1A1400)),
+                  SizedBox(width: 8),
+                  Text(
+                    '王座に挑戦',
+                    style: TextStyle(
+                      fontFamily: AppFonts.gothic,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1A1400),
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '世界王者を倒して王座を奪え',
+                style: TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1400).withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeButtonRow extends StatelessWidget {
+  final bool canPlay;
+  final VoidCallback onCpuTap;
+  final VoidCallback onOnlineTap;
+  const _ModeButtonRow({
+    required this.canPlay,
+    required this.onCpuTap,
+    required this.onOnlineTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MiniModeButton(
+            icon: '⚔',
+            label: 'つくって戦う',
+            subtitle: 'モンスターを作って挑戦',
+            enabled: canPlay,
+            onTap: canPlay ? onCpuTap : null,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MiniModeButton(
+            icon: '👥',
+            label: '友達と戦う',
+            subtitle: 'オンラインで対戦',
+            enabled: canPlay,
+            onTap: canPlay ? onOnlineTap : null,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniModeButton extends StatelessWidget {
   final String icon;
   final String label;
   final String subtitle;
-  final bool primary;
   final bool enabled;
   final VoidCallback? onTap;
 
-  const _ModeButton({
+  const _MiniModeButton({
     required this.icon,
     required this.label,
     required this.subtitle,
-    required this.primary,
     required this.enabled,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bg = primary ? AppColors.yellow : AppColors.card;
-    final labelColor = primary ? const Color(0xFF1A1400) : AppColors.ink;
-    final subColor = primary
-        ? const Color(0xFF1A1400).withValues(alpha: 0.55)
-        : AppColors.inkSoft;
-
     return Opacity(
       opacity: enabled ? 1.0 : 0.4,
       child: Material(
@@ -310,53 +552,45 @@ class _ModeButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Container(
             padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             decoration: BoxDecoration(
-              color: bg,
+              color: AppColors.card,
               borderRadius: BorderRadius.circular(16),
-              border:
-                  primary ? null : Border.all(color: AppColors.line, width: 1.5),
-              boxShadow: primary
-                  ? [
-                      BoxShadow(
-                        color: AppColors.yellow.withValues(alpha: 0.35),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
+              border: Border.all(color: AppColors.line, width: 1.5),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Text(icon, style: const TextStyle(fontSize: 22)),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(icon, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
                         label,
-                        style: TextStyle(
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           fontFamily: AppFonts.gothic,
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: labelColor,
+                          color: AppColors.ink,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontFamily: AppFonts.gothic,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: subColor,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.inkSoft,
                   ),
                 ),
-                Icon(Icons.chevron_right, color: labelColor, size: 22),
               ],
             ),
           ),

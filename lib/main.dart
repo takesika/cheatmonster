@@ -11,6 +11,7 @@ import 'screens/home_screen.dart';
 import 'screens/room_screen.dart';
 import 'screens/summon_result_screen.dart';
 import 'screens/summon_screen.dart';
+import 'screens/throne_screen.dart';
 import 'screens/waiting_screen.dart';
 
 Future<void> main() async {
@@ -41,6 +42,7 @@ class MyApp extends StatelessWidget {
           '/summon-result': (_) => const SummonResultScreen(),
           '/waiting': (_) => const WaitingScreen(),
           '/battle': (_) => const BattleScreen(),
+          '/throne': (_) => const ThroneScreen(),
         },
       ),
     );
