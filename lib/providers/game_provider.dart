@@ -377,6 +377,7 @@ class GameProvider extends ChangeNotifier {
         monster:
             fetched.monster.copyWith(imageBytes: previous.monster.imageBytes),
         updatedAt: fetched.updatedAt,
+        defenseCount: fetched.defenseCount,
       );
       isLoadingChampion = false;
       notifyListeners();
@@ -487,7 +488,8 @@ class GameProvider extends ChangeNotifier {
       battleResult = _createFallbackResult();
     }
 
-    // On win, try to crown. Draws and losses leave the throne unchanged.
+    // On win, try to crown. Draws and losses leave the throne unchanged
+    // but bump the champion's defense counter as a stat.
     if (battleResult!.outcome == BattleOutcome.win) {
       final result = await _championService.crown(
         challenger: playerMonster!,
@@ -500,6 +502,7 @@ class GameProvider extends ChangeNotifier {
         currentChampion = Champion(
           monster: playerMonster!,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
+          defenseCount: 0,
         );
       } else if (result == CrownResult.outdated) {
         throneOutdated = true;
@@ -512,6 +515,14 @@ class GameProvider extends ChangeNotifier {
         await _battleLimitService.refundBattle();
         remainingBattles = await _battleLimitService.getRemainingBattles();
       }
+    } else {
+      // Champion successfully defended their throne.
+      await _championService.recordDefense(expectedUpdatedAt: fresh.updatedAt);
+      currentChampion = Champion(
+        monster: fresh.monster,
+        updatedAt: fresh.updatedAt,
+        defenseCount: fresh.defenseCount + 1,
+      );
     }
 
     isBattling = false;

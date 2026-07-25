@@ -505,8 +505,8 @@ class _ModeButtonRow extends StatelessWidget {
         Expanded(
           child: _MiniModeButton(
             icon: '⚔',
-            label: 'つくって戦う',
-            subtitle: 'モンスターを作って挑戦',
+            label: 'CPUと戦う',
+            subtitle: 'コンピュータと1対戦',
             enabled: canPlay,
             onTap: canPlay ? onCpuTap : null,
           ),

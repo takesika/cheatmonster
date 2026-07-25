@@ -61,6 +61,7 @@ class ChampionService {
         'def': challenger.def,
         'specialAbility': challenger.specialAbility,
         'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'defenseCount': 0,
       };
       if (challenger.imageBytes != null) {
         data['imageBase64'] = base64Encode(challenger.imageBytes!);
@@ -69,6 +70,24 @@ class ChampionService {
       return CrownResult.crowned;
     } catch (_) {
       return CrownResult.error;
+    }
+  }
+
+  /// Bump the current champion's defense counter by one, but only if the
+  /// throne is still occupied by the same champion the caller just fought.
+  /// Non-atomic (fetch-then-set) so a race between two simultaneous defenders
+  /// may drop one of the increments; acceptable for a nice-to-have stat.
+  Future<void> recordDefense({required int expectedUpdatedAt}) async {
+    try {
+      final snapshot = await _ref.get();
+      if (!snapshot.exists || snapshot.value is! Map) return;
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      final currentUpdatedAt = (data['updatedAt'] as num?)?.toInt() ?? 0;
+      if (currentUpdatedAt != expectedUpdatedAt) return;
+      final currentCount = (data['defenseCount'] as num?)?.toInt() ?? 0;
+      await _ref.child('defenseCount').set(currentCount + 1);
+    } catch (_) {
+      // best-effort — silently ignore failures
     }
   }
 }

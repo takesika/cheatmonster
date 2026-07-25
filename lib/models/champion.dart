@@ -8,8 +8,13 @@ import 'monster.dart';
 class Champion {
   final Monster monster;
   final int updatedAt;
+  final int defenseCount;
 
-  Champion({required this.monster, required this.updatedAt});
+  Champion({
+    required this.monster,
+    required this.updatedAt,
+    this.defenseCount = 0,
+  });
 
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{
@@ -18,6 +23,7 @@ class Champion {
       'def': monster.def,
       'specialAbility': monster.specialAbility,
       'updatedAt': updatedAt,
+      'defenseCount': defenseCount,
     };
     if (monster.imageBytes != null) {
       data['imageBase64'] = base64Encode(monster.imageBytes!);
@@ -47,6 +53,7 @@ class Champion {
         imageBytes: bytes,
       ),
       updatedAt: (map['updatedAt'] as num?)?.toInt() ?? 0,
+      defenseCount: (map['defenseCount'] as num?)?.toInt() ?? 0,
     );
   }
 }

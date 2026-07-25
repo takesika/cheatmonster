@@ -207,6 +207,8 @@ class _ChampionView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         StatCards(atk: champion.monster.atk, def: champion.monster.def),
+        const SizedBox(height: 10),
+        _DefenseBadge(count: champion.defenseCount),
         const Spacer(),
         if (game.throneErrorMessage != null) ...[
           _Notice(
@@ -322,6 +324,137 @@ class _NoChampionView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DefenseBadge extends StatelessWidget {
+  final int count;
+  const _DefenseBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SizedBox(
+        width: 128,
+        height: 128,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // outer glow
+            Container(
+              width: 128,
+              height: 128,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.yellow.withValues(alpha: 0.55),
+                    blurRadius: 28,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+            // dark outer ring
+            Container(
+              width: 118,
+              height: 118,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF3A2A00),
+              ),
+            ),
+            // gold medal
+            Container(
+              width: 110,
+              height: 110,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: Alignment(-0.3, -0.4),
+                  colors: [
+                    Color(0xFFFFF3B0),
+                    AppColors.yellow,
+                    AppColors.yellowDeep,
+                    Color(0xFF8C6B00),
+                  ],
+                  stops: [0.0, 0.4, 0.75, 1.0],
+                ),
+              ),
+            ),
+            // laurel / inner border ring
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF6B4E00).withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
+              ),
+            ),
+            // content
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'DEFENSE',
+                  style: TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF6B4E00),
+                    letterSpacing: 3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 44,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF3A2A00),
+                    height: 1.0,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 1),
+                const Text(
+                  '防衛',
+                  style: TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF6B4E00),
+                    letterSpacing: 4,
+                  ),
+                ),
+              ],
+            ),
+            // top crown decoration
+            Positioned(
+              top: 6,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF3A2A00),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.emoji_events,
+                  size: 14,
+                  color: AppColors.yellow,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
