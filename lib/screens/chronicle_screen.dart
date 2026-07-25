@@ -241,6 +241,7 @@ class _EntryCard extends StatelessWidget {
                   _DefeatedRow(
                     name: entry.defeatedName,
                     ability: entry.defeatedAbility,
+                    defenseCount: entry.defeatedDefenseCount,
                   )
                 else
                   const _FirstReignBadge(),
@@ -288,54 +289,96 @@ class _EntryCard extends StatelessWidget {
 class _DefeatedRow extends StatelessWidget {
   final String name;
   final String ability;
-  const _DefeatedRow({required this.name, required this.ability});
+  final int defenseCount;
+  const _DefeatedRow({
+    required this.name,
+    required this.ability,
+    required this.defenseCount,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppColors.red.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Text(
-            '倒した',
-            style: TextStyle(
-              fontFamily: AppFonts.gothic,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-              color: AppColors.red,
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontFamily: AppFonts.gothic,
-                fontSize: 13,
-                color: AppColors.ink,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.red.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(4),
               ),
-              children: [
-                TextSpan(
-                  text: name,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+              child: const Text(
+                '倒した',
+                style: TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.red,
+                  letterSpacing: 1,
                 ),
-                const TextSpan(text: '  '),
-                TextSpan(
-                  text: '「$ability」',
-                  style: const TextStyle(
-                    color: AppColors.inkMid,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+              ),
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  style: const TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 13,
+                    color: AppColors.ink,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: name,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const TextSpan(text: '  '),
+                    TextSpan(
+                      text: '「$ability」',
+                      style: const TextStyle(
+                        color: AppColors.inkMid,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.only(left: 44),
+          child: _DefenseBadge(count: defenseCount),
+        ),
+      ],
+    );
+  }
+}
+
+class _DefenseBadge extends StatelessWidget {
+  final int count;
+  const _DefenseBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count == 0 ? '防衛 0 (即位直後に陥落)' : '防衛 $count 回';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.shield_outlined,
+            size: 12, color: AppColors.inkMid),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontFamily: AppFonts.gothic,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: AppColors.inkMid,
           ),
         ),
       ],

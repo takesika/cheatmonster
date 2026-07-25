@@ -538,6 +538,7 @@ class GameProvider extends ChangeNotifier {
           winner: playerMonster!,
           defeatedName: fresh.monster.name,
           defeatedAbility: fresh.monster.specialAbility,
+          defeatedDefenseCount: fresh.defenseCount,
           narration: battleResult!.narration,
           crownedAt: DateTime.now().millisecondsSinceEpoch,
         ));

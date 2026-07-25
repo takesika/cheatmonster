@@ -9,6 +9,7 @@ class HistoryEntry {
   final Monster winner;
   final String defeatedName;
   final String defeatedAbility;
+  final int defeatedDefenseCount;
   final String narration;
   final int crownedAt;
 
@@ -18,6 +19,7 @@ class HistoryEntry {
     required this.defeatedAbility,
     required this.narration,
     required this.crownedAt,
+    this.defeatedDefenseCount = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -28,6 +30,7 @@ class HistoryEntry {
       'specialAbility': winner.specialAbility,
       'defeatedName': defeatedName,
       'defeatedAbility': defeatedAbility,
+      'defeatedDefenseCount': defeatedDefenseCount,
       'narration': narration,
       'crownedAt': crownedAt,
     };
@@ -59,6 +62,8 @@ class HistoryEntry {
       ),
       defeatedName: map['defeatedName'] as String? ?? '',
       defeatedAbility: map['defeatedAbility'] as String? ?? '',
+      defeatedDefenseCount:
+          (map['defeatedDefenseCount'] as num?)?.toInt() ?? 0,
       narration: map['narration'] as String? ?? '',
       crownedAt: (map['crownedAt'] as num?)?.toInt() ?? 0,
     );
