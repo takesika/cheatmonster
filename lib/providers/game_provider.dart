@@ -343,37 +343,70 @@ class GameProvider extends ChangeNotifier {
   // ── Throne mode ──
 
   Future<void> loadChampion() async {
+    final previous = currentChampion;
     isLoadingChampion = true;
     throneErrorMessage = null;
     notifyListeners();
+
+    Champion? fetched;
     try {
-      currentChampion = await _championService.fetchChampion();
+      fetched = await _championService.fetchChampion();
     } catch (_) {
       throneErrorMessage = '王者情報の取得に失敗しました';
-    } finally {
       isLoadingChampion = false;
       notifyListeners();
+      return;
     }
 
-    // Image bytes are not stored in RTDB (transaction payload size limit).
-    // Regenerate locally so the throne screen can display something.
-    final champ = currentChampion;
-    if (champ != null && champ.monster.imageBytes == null) {
-      try {
-        final bytes = await _imageService.generateMonsterImage(
-          champ.monster.name,
-          champ.monster.specialAbility,
+    if (fetched == null) {
+      currentChampion = null;
+      isLoadingChampion = false;
+      notifyListeners();
+      return;
+    }
+
+    // Images are not stored in RTDB. Prefer the previously-held bytes when
+    // the fetched champion is the same monster (avoids a flicker to the
+    // placeholder icon, then a different regenerated image).
+    final sameAsPrevious = previous != null &&
+        previous.monster.imageBytes != null &&
+        previous.monster.name == fetched.monster.name &&
+        previous.monster.specialAbility == fetched.monster.specialAbility;
+    if (sameAsPrevious) {
+      currentChampion = Champion(
+        monster:
+            fetched.monster.copyWith(imageBytes: previous.monster.imageBytes),
+        updatedAt: fetched.updatedAt,
+      );
+      isLoadingChampion = false;
+      notifyListeners();
+      return;
+    }
+
+    // The fetched champion already carries its image (stored as base64 in
+    // RTDB), so just commit it. Only fall back to a local generation if the
+    // server data happens to have no image at all — legacy champions
+    // written before we started persisting the image.
+    currentChampion = fetched;
+    isLoadingChampion = false;
+    notifyListeners();
+
+    if (fetched.monster.imageBytes != null) return;
+
+    try {
+      final bytes = await _imageService.generateMonsterImage(
+        fetched.monster.name,
+        fetched.monster.specialAbility,
+      );
+      if (bytes != null && currentChampion == fetched) {
+        currentChampion = Champion(
+          monster: fetched.monster.copyWith(imageBytes: bytes),
+          updatedAt: fetched.updatedAt,
         );
-        if (bytes != null && currentChampion == champ) {
-          currentChampion = Champion(
-            monster: champ.monster.copyWith(imageBytes: bytes),
-            updatedAt: champ.updatedAt,
-          );
-          notifyListeners();
-        }
-      } catch (_) {
-        // Ignore — placeholder icon will be shown.
+        notifyListeners();
       }
+    } catch (_) {
+      // Ignore — placeholder icon will be shown.
     }
   }
 

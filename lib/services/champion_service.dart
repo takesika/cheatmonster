@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_database/firebase_database.dart';
 
 import '../models/champion.dart';
@@ -31,44 +33,40 @@ class ChampionService {
   /// [expectedPreviousUpdatedAt]. Pass 0 when there is no previous champion
   /// (i.e. we expect `/champion` to be null).
   ///
-  /// Images are intentionally NOT persisted in RTDB — the payload has to stay
-  /// small enough to fit through the transaction round-trip cleanly. Each
-  /// device regenerates the champion's image locally when it views the throne.
+  /// Uses a fetch-then-set pattern instead of a real transaction because the
+  /// Flutter SDK's transaction handler is prone to being invoked with a null
+  /// `current` on cache miss, which our earlier abort-on-null logic treated
+  /// as an outdated throne. Two truly-simultaneous winners now collapse to
+  /// last-writer-wins, which is acceptable for our low-contention scenario.
+  ///
+  /// The challenger's image bytes are persisted alongside the metadata so
+  /// every device sees the same champion artwork.
   Future<CrownResult> crown({
     required Monster challenger,
     required int expectedPreviousUpdatedAt,
   }) async {
     try {
-      // Warm the local cache so the transaction handler is called with actual
-      // server data rather than a stale null.
-      await _ref.get();
+      final snapshot = await _ref.get();
+      final currentUpdatedAt = (snapshot.exists && snapshot.value is Map)
+          ? ((snapshot.value as Map)['updatedAt'] as num?)?.toInt() ?? 0
+          : 0;
 
-      final result = await _ref.runTransaction((current) {
-        final int currentUpdatedAt;
-        if (current is Map && current['updatedAt'] is num) {
-          currentUpdatedAt = (current['updatedAt'] as num).toInt();
-        } else if (current == null) {
-          currentUpdatedAt = 0;
-        } else {
-          // Unexpected shape — bail out rather than overwrite.
-          return Transaction.abort();
-        }
+      if (currentUpdatedAt != expectedPreviousUpdatedAt) {
+        return CrownResult.outdated;
+      }
 
-        if (currentUpdatedAt != expectedPreviousUpdatedAt) {
-          return Transaction.abort();
-        }
-
-        final data = <String, Object>{
-          'name': challenger.name,
-          'atk': challenger.atk,
-          'def': challenger.def,
-          'specialAbility': challenger.specialAbility,
-          'updatedAt': DateTime.now().millisecondsSinceEpoch,
-        };
-        return Transaction.success(data);
-      });
-
-      return result.committed ? CrownResult.crowned : CrownResult.outdated;
+      final data = <String, Object>{
+        'name': challenger.name,
+        'atk': challenger.atk,
+        'def': challenger.def,
+        'specialAbility': challenger.specialAbility,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+      if (challenger.imageBytes != null) {
+        data['imageBase64'] = base64Encode(challenger.imageBytes!);
+      }
+      await _ref.set(data);
+      return CrownResult.crowned;
     } catch (_) {
       return CrownResult.error;
     }
