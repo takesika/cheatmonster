@@ -122,4 +122,49 @@ JSONのみを返してください。
       );
     }
   }
+
+  /// Ask Gemini whether the supplied monster name + ability are appropriate
+  /// for a publicly-visible entry. Returns `(safe: true)` on any error so
+  /// moderation never blocks legitimate play because of an API hiccup.
+  Future<({bool safe, String? reason})> moderateContent({
+    required String name,
+    required String ability,
+  }) async {
+    final safeName = InputSanitizer.sanitize(name);
+    final safeAbility = InputSanitizer.sanitize(ability);
+    final prompt = '''
+あなたはコンテンツモデレーターです。以下のモンスター名と能力が、全年齢向けの公開ゲームに登録するのに適切か判定してください。
+
+以下のいずれかに該当する場合は「不適切」としてください:
+- 差別的表現 (民族・国籍・性別・宗教・LGBT+・障害など)
+- 露骨な性表現、下ネタ、性的な暗喩
+- 特定個人・団体への攻撃、誹謗中傷
+- 実在の商標・キャラクター名・著名人の氏名
+- 極端な暴力・自傷・自殺の直接描写
+- 違法薬物・違法行為の推奨
+
+軽い冗談やゲーム内で自然な暴力表現(バトル・攻撃・魔法など)は許容してください。
+
+名前: $safeName
+能力: $safeAbility
+
+JSON形式で返してください。JSONのみを返し、他の文字は含めないでください:
+{"safe": true または false, "reason": "不適切な理由（safeがfalseのときのみ、短く）"}
+''';
+
+    try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      final text = (response.text ?? '')
+          .replaceAll(RegExp(r'```json\s*'), '')
+          .replaceAll(RegExp(r'```\s*'), '')
+          .trim();
+      final json = jsonDecode(text) as Map<String, dynamic>;
+      final safe = json['safe'] as bool? ?? true;
+      final reason = json['reason'] as String?;
+      return (safe: safe, reason: reason);
+    } catch (_) {
+      // Fail open — never block the user because of a moderation API error.
+      return (safe: true, reason: null);
+    }
+  }
 }

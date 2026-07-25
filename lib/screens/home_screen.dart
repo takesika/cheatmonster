@@ -79,13 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.pushNamed(context, '/room');
                               },
                             ),
-                            if (game.pvpTotalMatches > 0) ...[
-                              SizedBox(height: 12 * scale),
-                              _PvpRecord(
-                                wins: game.pvpWins,
-                                plays: game.pvpTotalMatches,
-                              ),
-                            ],
                             if (!canPlay) ...[
                               SizedBox(height: 10 * scale),
                               const Center(
@@ -593,61 +586,3 @@ class _MiniModeButton extends StatelessWidget {
   }
 }
 
-class _PvpRecord extends StatelessWidget {
-  final int wins;
-  final int plays;
-  const _PvpRecord({required this.wins, required this.plays});
-
-  @override
-  Widget build(BuildContext context) {
-    final rate = plays > 0 ? '${(wins / plays * 100).round()}%' : '—';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.line, width: 1.5),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _Stat(label: '勝利', value: '$wins'),
-          Container(width: 1, height: 22, color: AppColors.line),
-          _Stat(label: '対戦', value: '$plays'),
-          Container(width: 1, height: 22, color: AppColors.line),
-          _Stat(label: '勝率', value: rate),
-        ],
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Stat({required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label,
-            style: const TextStyle(
-              fontFamily: AppFonts.gothic,
-              fontSize: 10,
-              color: AppColors.inkSoft,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-            )),
-        const SizedBox(height: 2),
-        Text(value,
-            style: const TextStyle(
-              fontFamily: AppFonts.gothic,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: AppColors.ink,
-              fontFeatures: [FontFeature.tabularFigures()],
-            )),
-      ],
-    );
-  }
-}

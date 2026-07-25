@@ -30,6 +30,14 @@ class _RoomScreenState extends State<RoomScreen> {
   Timer? _timeoutTimer;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<GameProvider>().loadPvpRecord();
+    });
+  }
+
+  @override
   void dispose() {
     _codeController.dispose();
     _statusSubscription?.cancel();
@@ -168,6 +176,20 @@ class _RoomScreenState extends State<RoomScreen> {
                             _mode = 'join';
                             _errorMessage = null;
                           }),
+                        ),
+                        Consumer<GameProvider>(
+                          builder: (context, game, _) {
+                            if (game.pvpTotalMatches <= 0) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 18),
+                              child: _PvpRecord(
+                                wins: game.pvpWins,
+                                plays: game.pvpTotalMatches,
+                              ),
+                            );
+                          },
                         ),
                       ] else if (_mode == 'create') ...[
                         _CreatingCard(
@@ -742,3 +764,78 @@ class _CodeBoxesState extends State<_CodeBoxes> {
     );
   }
 }
+
+class _PvpRecord extends StatelessWidget {
+  final int wins;
+  final int plays;
+  const _PvpRecord({required this.wins, required this.plays});
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = plays > 0 ? '${(wins / plays * 100).round()}%' : '—';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'オンライン戦績',
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 10,
+              color: AppColors.inkSoft,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _Stat(label: '勝利', value: '$wins'),
+              Container(width: 1, height: 22, color: AppColors.line),
+              _Stat(label: '対戦', value: '$plays'),
+              Container(width: 1, height: 22, color: AppColors.line),
+              _Stat(label: '勝率', value: rate),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String label;
+  final String value;
+  const _Stat({required this.label, required this.value});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 10,
+              color: AppColors.inkSoft,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 2,
+            )),
+        const SizedBox(height: 2),
+        Text(value,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: AppColors.ink,
+              fontFeatures: [FontFeature.tabularFigures()],
+            )),
+      ],
+    );
+  }
+}
+

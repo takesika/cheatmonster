@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
+import '../services/gemini_service.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
 
@@ -18,6 +19,8 @@ class _SummonScreenState extends State<SummonScreen> {
   final _nameController = TextEditingController();
   final _abilityController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _geminiService = GeminiService();
+  bool _isModerating = false;
 
   @override
   void initState() {
@@ -109,14 +112,18 @@ class _SummonScreenState extends State<SummonScreen> {
                         ],
                         const SizedBox(height: 28),
                         GradientButton(
-                          label: 'モンスターを召喚',
-                          icon: Icons.auto_awesome,
+                          label: _isModerating
+                              ? '内容を確認中...'
+                              : 'モンスターを召喚',
+                          icon: _isModerating
+                              ? Icons.hourglass_bottom
+                              : Icons.auto_awesome,
                           variant: CmButtonVariant.yellow,
                           fontSize: 17,
                           letterSpacing: 1.2,
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           fullWidth: true,
-                          onTap: _onSummon,
+                          onTap: _isModerating ? null : _onSummon,
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -131,11 +138,45 @@ class _SummonScreenState extends State<SummonScreen> {
     );
   }
 
-  void _onSummon() {
+  Future<void> _onSummon() async {
+    if (_isModerating) return;
     if (!_formKey.currentState!.validate()) return;
     final name = _nameController.text.trim();
     final ability = _abilityController.text.trim();
-    context.read<GameProvider>().createPlayerMonster(name, ability);
+    final game = context.read<GameProvider>();
+    final isThrone = game.gameMode == GameMode.throne;
+
+    if (isThrone) {
+      setState(() => _isModerating = true);
+      final result = await _geminiService.moderateContent(
+        name: name,
+        ability: ability,
+      );
+      if (!mounted) return;
+      setState(() => _isModerating = false);
+      if (!result.safe) {
+        final reason = result.reason?.isNotEmpty == true
+            ? result.reason!
+            : '公開できない表現が含まれています';
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('この能力は登録できません'),
+            content: Text(reason),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
+    game.createPlayerMonster(name, ability);
+    if (!mounted) return;
     Navigator.pushNamed(context, '/summon-result');
   }
 }
