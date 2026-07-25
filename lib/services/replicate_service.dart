@@ -12,12 +12,11 @@ class ImageGenerationService {
     final safeName = InputSanitizer.sanitize(name);
     final safeAbility = InputSanitizer.sanitize(specialAbility);
     final prompt =
-        '任天堂風のポップで親しみやすいモンスターキャラクターイラスト。'
-        '「$safeName」という名前のクリーチャー。能力: $safeAbility。'
-        'ポケモン・スプラトゥーン・星のカービィのような、鮮やかな配色 (ビビッドな青・黄・ピンク・ミント)、'
-        '大きな瞳のかわいい顔立ち、丸みのあるフォルム、'
-        '3Dレンダリング風のセルシェード、シンプルな背景 (単色または淡いパステルグラデーション)、'
-        '正方形フォーマットのキャラクターポートレート。ダーク・恐怖・血・グロテスクな要素は避ける。';
+        '古典的なJRPGテイストのモンスターキャラクターイラスト。'
+        '「$safeName」という名のクリーチャー。能力: $safeAbility。'
+        '威厳と闘志を感じさせつつも、どこか愛嬌が滲むデザイン。'
+        '名前と能力に忠実で、フォルム・配色・意匠は自由かつ独創的に発想する。'
+        '正方形フォーマットのキャラクターポートレート。';
 
     final url = Uri.parse(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${Env.geminiApiKey}',

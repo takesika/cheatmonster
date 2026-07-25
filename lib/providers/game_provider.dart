@@ -354,6 +354,27 @@ class GameProvider extends ChangeNotifier {
       isLoadingChampion = false;
       notifyListeners();
     }
+
+    // Image bytes are not stored in RTDB (transaction payload size limit).
+    // Regenerate locally so the throne screen can display something.
+    final champ = currentChampion;
+    if (champ != null && champ.monster.imageBytes == null) {
+      try {
+        final bytes = await _imageService.generateMonsterImage(
+          champ.monster.name,
+          champ.monster.specialAbility,
+        );
+        if (bytes != null && currentChampion == champ) {
+          currentChampion = Champion(
+            monster: champ.monster.copyWith(imageBytes: bytes),
+            updatedAt: champ.updatedAt,
+          );
+          notifyListeners();
+        }
+      } catch (_) {
+        // Ignore — placeholder icon will be shown.
+      }
+    }
   }
 
   /// Crown the challenger as the first champion (no battle needed).
@@ -366,8 +387,11 @@ class GameProvider extends ChangeNotifier {
     );
     if (result == CrownResult.crowned) {
       throneCrowned = true;
-      // Reflect newly-crowned champion locally.
-      await loadChampion();
+      currentChampion = Champion(
+        monster: playerMonster!,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+      );
+      notifyListeners();
       return true;
     } else if (result == CrownResult.outdated) {
       throneOutdated = true;
@@ -438,6 +462,12 @@ class GameProvider extends ChangeNotifier {
       );
       if (result == CrownResult.crowned) {
         throneCrowned = true;
+        // Reflect the new champion locally so any UI that reads
+        // currentChampion after the battle sees the winner immediately.
+        currentChampion = Champion(
+          monster: playerMonster!,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+        );
       } else if (result == CrownResult.outdated) {
         throneOutdated = true;
         throneErrorMessage = '判定中に王者が交代しました';
