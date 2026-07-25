@@ -17,7 +17,8 @@ class GeminiService {
     );
   }
 
-  Future<BattleResult> judgeBattle(Monster player, Monster opponent, {bool isOnline = false}) async {
+  Future<BattleResult> judgeBattle(Monster player, Monster opponent,
+      {bool isOnline = false, bool neutralRoles = false}) async {
     final playerName = InputSanitizer.sanitize(player.name);
     final playerAbility = InputSanitizer.sanitize(player.specialAbility);
     final opponentName = InputSanitizer.sanitize(opponent.name);
@@ -26,7 +27,13 @@ class GeminiService {
     final String introText;
     final String role1;
     final String role2;
-    if (isOnline) {
+    if (neutralRoles) {
+      // Purely ability-based judging — avoid framing either side as the
+      // "player" so the LLM doesn't apply narrative bias.
+      introText = '2体のモンスターのバトルの審判です。両者を対等に評価してください。';
+      role1 = 'monster_a';
+      role2 = 'monster_b';
+    } else if (isOnline) {
       introText = '2人のプレイヤーのモンスターバトルの審判です。';
       role1 = 'player1';
       role2 = 'player2';

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/battle_result.dart';
 import '../models/champion.dart';
 import '../models/game_mode.dart';
+import '../models/history_entry.dart';
 import '../models/monster.dart';
 import '../services/battle_limit_service.dart';
 import '../services/champion_service.dart';
@@ -295,6 +296,22 @@ class GameProvider extends ChangeNotifier {
     return BattleResult(outcome: outcome, narration: '通信エラーが発生しましたが、力比べで決着がつきました！');
   }
 
+  BattleResult _invertOutcome(BattleResult result) {
+    BattleOutcome inverted;
+    switch (result.outcome) {
+      case BattleOutcome.win:
+        inverted = BattleOutcome.lose;
+        break;
+      case BattleOutcome.lose:
+        inverted = BattleOutcome.win;
+        break;
+      case BattleOutcome.draw:
+        inverted = BattleOutcome.draw;
+        break;
+    }
+    return BattleResult(outcome: inverted, narration: result.narration);
+  }
+
   Future<void> setContinue() async {
     if (roomCode != null && playerNumber != null) {
       await _roomService.setContinue(roomCode!, playerNumber!);
@@ -425,6 +442,13 @@ class GameProvider extends ChangeNotifier {
         monster: playerMonster!,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       );
+      await _championService.recordCrown(HistoryEntry(
+        winner: playerMonster!,
+        defeatedName: '',
+        defeatedAbility: '',
+        narration: '初代王者が誕生した。',
+        crownedAt: DateTime.now().millisecondsSinceEpoch,
+      ));
       notifyListeners();
       return true;
     } else if (result == CrownResult.outdated) {
@@ -479,11 +503,17 @@ class GameProvider extends ChangeNotifier {
     await _battleLimitService.recordBattle();
     remainingBattles = await _battleLimitService.getRemainingBattles();
 
+    // Randomize which monster is passed as first so any positional bias in
+    // the LLM averages out — combined with neutral role labels, the throne
+    // battle is judged purely on stats + special ability.
+    final swap = _rng.nextBool();
     try {
-      battleResult = await _geminiService.judgeBattle(
-        playerMonster!,
-        fresh.monster,
+      final raw = await _geminiService.judgeBattle(
+        swap ? fresh.monster : playerMonster!,
+        swap ? playerMonster! : fresh.monster,
+        neutralRoles: true,
       );
+      battleResult = swap ? _invertOutcome(raw) : raw;
     } catch (_) {
       battleResult = _createFallbackResult();
     }
@@ -504,6 +534,13 @@ class GameProvider extends ChangeNotifier {
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           defenseCount: 0,
         );
+        await _championService.recordCrown(HistoryEntry(
+          winner: playerMonster!,
+          defeatedName: fresh.monster.name,
+          defeatedAbility: fresh.monster.specialAbility,
+          narration: battleResult!.narration,
+          crownedAt: DateTime.now().millisecondsSinceEpoch,
+        ));
       } else if (result == CrownResult.outdated) {
         throneOutdated = true;
         throneErrorMessage = '判定中に王者が交代しました';

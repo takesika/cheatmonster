@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 
 import '../models/champion.dart';
+import '../models/history_entry.dart';
 import '../models/monster.dart';
 
 /// Outcomes for a champion-crowning attempt.
@@ -20,6 +21,8 @@ enum CrownResult {
 class ChampionService {
   final DatabaseReference _ref =
       FirebaseDatabase.instance.ref().child('champion');
+  final DatabaseReference _historyRef =
+      FirebaseDatabase.instance.ref().child('history');
 
   /// Fetch the current champion. Returns null if no champion exists yet.
   Future<Champion?> fetchChampion() async {
@@ -88,6 +91,37 @@ class ChampionService {
       await _ref.child('defenseCount').set(currentCount + 1);
     } catch (_) {
       // best-effort — silently ignore failures
+    }
+  }
+
+  /// Append a new entry to the chronicle. Called after each successful crown.
+  Future<void> recordCrown(HistoryEntry entry) async {
+    try {
+      await _historyRef.push().set(entry.toJson());
+    } catch (_) {
+      // Chronicle write is best-effort; a missing entry doesn't break the game.
+    }
+  }
+
+  /// Fetch the latest chronicle entries, newest first.
+  Future<List<HistoryEntry>> fetchHistory({int limit = 50}) async {
+    try {
+      final snapshot =
+          await _historyRef.orderByKey().limitToLast(limit).get();
+      if (!snapshot.exists) return const [];
+      final value = snapshot.value;
+      if (value is! Map) return const [];
+      final entries = <MapEntry<String, HistoryEntry>>[];
+      value.forEach((key, raw) {
+        final parsed = HistoryEntry.fromRaw(raw);
+        if (parsed != null && key is String) {
+          entries.add(MapEntry(key, parsed));
+        }
+      });
+      entries.sort((a, b) => b.key.compareTo(a.key));
+      return entries.map((e) => e.value).toList();
+    } catch (_) {
+      return const [];
     }
   }
 }

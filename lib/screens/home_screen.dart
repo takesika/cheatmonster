@@ -126,15 +126,15 @@ class _TopBar extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const _RankingButton(),
+        const _ChronicleButton(),
         _ChallengeChip(remaining: remaining, total: total),
       ],
     );
   }
 }
 
-class _RankingButton extends StatelessWidget {
-  const _RankingButton();
+class _ChronicleButton extends StatelessWidget {
+  const _ChronicleButton();
 
   @override
   Widget build(BuildContext context) {
@@ -142,24 +142,17 @@ class _RankingButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ランキングは近日公開予定'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        onTap: () => Navigator.pushNamed(context, '/chronicle'),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined,
+              Icon(Icons.auto_stories_outlined,
                   size: 16, color: AppColors.inkMid),
-              const SizedBox(width: 4),
-              const Text(
-                'ランキング',
+              SizedBox(width: 4),
+              Text(
+                'チート年表',
                 style: TextStyle(
                   fontFamily: AppFonts.gothic,
                   fontSize: 12,

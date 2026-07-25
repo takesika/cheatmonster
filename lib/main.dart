@@ -7,6 +7,7 @@ import 'config/theme.dart';
 import 'firebase_options.dart';
 import 'providers/game_provider.dart';
 import 'screens/battle_screen.dart';
+import 'screens/chronicle_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/room_screen.dart';
 import 'screens/summon_result_screen.dart';
@@ -43,6 +44,7 @@ class MyApp extends StatelessWidget {
           '/waiting': (_) => const WaitingScreen(),
           '/battle': (_) => const BattleScreen(),
           '/throne': (_) => const ThroneScreen(),
+          '/chronicle': (_) => const ChronicleScreen(),
         },
       ),
     );
