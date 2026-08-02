@@ -44,18 +44,23 @@ class ChampionService {
   ///
   /// The challenger's image bytes are persisted alongside the metadata so
   /// every device sees the same champion artwork.
-  Future<CrownResult> crown({
+  Future<({CrownResult result, int previousDefenseCount})> crown({
     required Monster challenger,
     required int expectedPreviousUpdatedAt,
   }) async {
     try {
       final snapshot = await _ref.get();
-      final currentUpdatedAt = (snapshot.exists && snapshot.value is Map)
-          ? ((snapshot.value as Map)['updatedAt'] as num?)?.toInt() ?? 0
-          : 0;
+      final isMap = snapshot.exists && snapshot.value is Map;
+      final map = isMap ? (snapshot.value as Map) : null;
+      final currentUpdatedAt = (map?['updatedAt'] as num?)?.toInt() ?? 0;
+      final previousDefenseCount =
+          (map?['defenseCount'] as num?)?.toInt() ?? 0;
 
       if (currentUpdatedAt != expectedPreviousUpdatedAt) {
-        return CrownResult.outdated;
+        return (
+          result: CrownResult.outdated,
+          previousDefenseCount: previousDefenseCount,
+        );
       }
 
       final data = <String, Object>{
@@ -70,9 +75,12 @@ class ChampionService {
         data['imageBase64'] = base64Encode(challenger.imageBytes!);
       }
       await _ref.set(data);
-      return CrownResult.crowned;
+      return (
+        result: CrownResult.crowned,
+        previousDefenseCount: previousDefenseCount,
+      );
     } catch (_) {
-      return CrownResult.error;
+      return (result: CrownResult.error, previousDefenseCount: 0);
     }
   }
 

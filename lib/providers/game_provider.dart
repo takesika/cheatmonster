@@ -432,10 +432,11 @@ class GameProvider extends ChangeNotifier {
   /// Returns true on success.
   Future<bool> crownAsFirstChampion() async {
     if (playerMonster == null) return false;
-    final result = await _championService.crown(
+    final crownOutcome = await _championService.crown(
       challenger: playerMonster!,
       expectedPreviousUpdatedAt: 0,
     );
+    final result = crownOutcome.result;
     if (result == CrownResult.crowned) {
       throneCrowned = true;
       currentChampion = Champion(
@@ -521,10 +522,11 @@ class GameProvider extends ChangeNotifier {
     // On win, try to crown. Draws and losses leave the throne unchanged
     // but bump the champion's defense counter as a stat.
     if (battleResult!.outcome == BattleOutcome.win) {
-      final result = await _championService.crown(
+      final crownOutcome = await _championService.crown(
         challenger: playerMonster!,
         expectedPreviousUpdatedAt: fresh.updatedAt,
       );
+      final result = crownOutcome.result;
       if (result == CrownResult.crowned) {
         throneCrowned = true;
         // Reflect the new champion locally so any UI that reads
@@ -534,11 +536,13 @@ class GameProvider extends ChangeNotifier {
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           defenseCount: 0,
         );
+        // Prefer the defenseCount read at crown time — it captures
+        // defenses recorded between our battle-start fetch and now.
         await _championService.recordCrown(HistoryEntry(
           winner: playerMonster!,
           defeatedName: fresh.monster.name,
           defeatedAbility: fresh.monster.specialAbility,
-          defeatedDefenseCount: fresh.defenseCount,
+          defeatedDefenseCount: crownOutcome.previousDefenseCount,
           narration: battleResult!.narration,
           crownedAt: DateTime.now().millisecondsSinceEpoch,
         ));
