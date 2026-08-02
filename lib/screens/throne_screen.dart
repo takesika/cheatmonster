@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/game_mode.dart';
 import '../providers/game_provider.dart';
+import '../services/report_service.dart';
 import '../widgets/game_background.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/monster_art.dart';
+import '../widgets/report_sheet.dart';
 
 class ThroneScreen extends StatefulWidget {
   const ThroneScreen({super.key});
@@ -16,9 +18,14 @@ class ThroneScreen extends StatefulWidget {
 }
 
 class _ThroneScreenState extends State<ThroneScreen> {
+  final _reports = ReportService();
+
   @override
   void initState() {
     super.initState();
+    _reports.load().then((_) {
+      if (mounted) setState(() {});
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final game = context.read<GameProvider>();
       game.resetThroneFlags();
@@ -32,6 +39,27 @@ class _ThroneScreenState extends State<ThroneScreen> {
     game.resetThroneFlags();
     game.setGameMode(GameMode.throne);
     Navigator.pushNamed(context, '/summon');
+  }
+
+  Future<void> _reportCurrentChampion(GameProvider game) async {
+    final champion = game.currentChampion;
+    if (champion == null) return;
+    final reason = await showReportSheet(context);
+    if (reason == null) return;
+    await _reports.reportChampion(
+      updatedAt: champion.updatedAt,
+      name: champion.monster.name,
+      ability: champion.monster.specialAbility,
+      reason: reason,
+    );
+    if (!mounted) return;
+    setState(() {}); // rebuild to apply mask
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('通報を受け付けました。この王者はこの端末では非表示になります。'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -86,7 +114,10 @@ class _ThroneScreenState extends State<ThroneScreen> {
                     )
                   : _ChampionView(
                       game: game,
+                      blocked: _reports.isChampionBlocked(
+                          game.currentChampion!.updatedAt),
                       onChallenge: () => _startChallenge(context, game),
+                      onReport: () => _reportCurrentChampion(game),
                     ),
             ),
           ),
@@ -133,13 +164,23 @@ class _TopBar extends StatelessWidget {
 
 class _ChampionView extends StatelessWidget {
   final GameProvider game;
+  final bool blocked;
   final VoidCallback onChallenge;
-  const _ChampionView({required this.game, required this.onChallenge});
+  final VoidCallback onReport;
+  const _ChampionView({
+    required this.game,
+    required this.blocked,
+    required this.onChallenge,
+    required this.onReport,
+  });
 
   @override
   Widget build(BuildContext context) {
     final champion = game.currentChampion!;
     final canChallenge = game.remainingBattles > 0;
+    final displayedName = blocked ? '(通報済のため非表示)' : champion.monster.name;
+    final displayedAbility =
+        blocked ? '───' : '「${champion.monster.specialAbility}」';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,9 +192,42 @@ class _ChampionView extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                child: MonsterArt(
-                  imageBytes: champion.monster.imageBytes,
-                  radius: 20,
+                child: blocked
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.inkSoft.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.visibility_off_outlined,
+                              size: 56, color: AppColors.inkMid),
+                        ),
+                      )
+                    : MonsterArt(
+                        imageBytes: champion.monster.imageBytes,
+                        radius: 20,
+                      ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: AppColors.ink.withValues(alpha: 0.55),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: blocked ? null : onReport,
+                    child: Padding(
+                      padding: const EdgeInsets.all(7),
+                      child: Icon(
+                        blocked ? Icons.flag : Icons.flag_outlined,
+                        size: 18,
+                        color: blocked
+                            ? Colors.white.withValues(alpha: 0.5)
+                            : Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Positioned(
@@ -178,7 +252,7 @@ class _ChampionView extends StatelessWidget {
                   child: Column(
                     children: [
                       Text(
-                        champion.monster.name,
+                        displayedName,
                         style: TextStyle(
                           fontFamily: AppFonts.gothic,
                           fontSize: 13,
@@ -188,7 +262,7 @@ class _ChampionView extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '「${champion.monster.specialAbility}」',
+                        displayedAbility,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontFamily: AppFonts.gothic,

@@ -13,6 +13,11 @@ class HistoryEntry {
   final String narration;
   final int crownedAt;
 
+  /// RTDB push id — populated by `fetchHistory` so the UI can report and
+  /// locally block a specific chronicle entry. Empty for freshly-constructed
+  /// entries that haven't been persisted yet.
+  final String key;
+
   HistoryEntry({
     required this.winner,
     required this.defeatedName,
@@ -20,7 +25,18 @@ class HistoryEntry {
     required this.narration,
     required this.crownedAt,
     this.defeatedDefenseCount = 0,
+    this.key = '',
   });
+
+  HistoryEntry withKey(String key) => HistoryEntry(
+        winner: winner,
+        defeatedName: defeatedName,
+        defeatedAbility: defeatedAbility,
+        defeatedDefenseCount: defeatedDefenseCount,
+        narration: narration,
+        crownedAt: crownedAt,
+        key: key,
+      );
 
   Map<String, dynamic> toJson() {
     final data = <String, dynamic>{

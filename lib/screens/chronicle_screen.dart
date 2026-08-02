@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/history_entry.dart';
 import '../services/champion_service.dart';
+import '../services/report_service.dart';
 import '../widgets/game_background.dart';
 import '../widgets/monster_art.dart';
+import '../widgets/report_sheet.dart';
 
 class ChronicleScreen extends StatefulWidget {
   const ChronicleScreen({super.key});
@@ -15,6 +17,7 @@ class ChronicleScreen extends StatefulWidget {
 
 class _ChronicleScreenState extends State<ChronicleScreen> {
   final _service = ChampionService();
+  final _reports = ReportService();
   bool _loading = true;
   String? _error;
   List<HistoryEntry> _entries = const [];
@@ -31,7 +34,10 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
       _error = null;
     });
     try {
-      final entries = await _service.fetchHistory();
+      await _reports.load();
+      final raw = await _service.fetchHistory();
+      final entries =
+          raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
       if (!mounted) return;
       setState(() {
         _entries = entries;
@@ -44,6 +50,28 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _reportEntry(HistoryEntry entry) async {
+    final reason = await showReportSheet(context);
+    if (reason == null) return;
+    await _reports.reportHistory(
+      key: entry.key,
+      winnerName: entry.winner.name,
+      defeatedName: entry.defeatedName,
+      defeatedAbility: entry.defeatedAbility,
+      reason: reason,
+    );
+    if (!mounted) return;
+    setState(() {
+      _entries = _entries.where((e) => e.key != entry.key).toList();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('通報を受け付けました。この記録はこの端末では非表示になります。'),
+        duration: Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -85,7 +113,11 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
       itemBuilder: (context, i) {
         final entry = _entries[i];
         final index = _entries.length - i; // newest = largest number
-        return _EntryCard(entry: entry, index: index);
+        return _EntryCard(
+          entry: entry,
+          index: index,
+          onReport: entry.key.isEmpty ? null : () => _reportEntry(entry),
+        );
       },
     );
   }
@@ -134,7 +166,12 @@ class _TopBar extends StatelessWidget {
 class _EntryCard extends StatelessWidget {
   final HistoryEntry entry;
   final int index;
-  const _EntryCard({required this.entry, required this.index});
+  final VoidCallback? onReport;
+  const _EntryCard({
+    required this.entry,
+    required this.index,
+    this.onReport,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +223,24 @@ class _EntryCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onReport != null)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Material(
+                      color: AppColors.ink.withValues(alpha: 0.55),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onReport,
+                        child: const Padding(
+                          padding: EdgeInsets.all(6),
+                          child: Icon(Icons.flag_outlined,
+                              size: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ),
                 Positioned(
                   left: 0,
                   right: 0,

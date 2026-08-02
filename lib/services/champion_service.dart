@@ -123,7 +123,7 @@ class ChampionService {
       value.forEach((key, raw) {
         final parsed = HistoryEntry.fromRaw(raw);
         if (parsed != null && key is String) {
-          entries.add(MapEntry(key, parsed));
+          entries.add(MapEntry(key, parsed.withKey(key)));
         }
       });
       entries.sort((a, b) => b.key.compareTo(a.key));
