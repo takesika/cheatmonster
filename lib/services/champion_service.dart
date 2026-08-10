@@ -23,6 +23,8 @@ class ChampionService {
       FirebaseDatabase.instance.ref().child('champion');
   final DatabaseReference _historyRef =
       FirebaseDatabase.instance.ref().child('history');
+  final DatabaseReference _historyCountRef =
+      FirebaseDatabase.instance.ref().child('historyCount');
 
   /// Fetch the current champion. Returns null if no champion exists yet.
   Future<Champion?> fetchChampion() async {
@@ -109,13 +111,74 @@ class ChampionService {
     } catch (_) {
       // Chronicle write is best-effort; a missing entry doesn't break the game.
     }
+    // Bump the running total so the chronicle UI can show absolute chapter
+    // numbers without downloading every entry. Non-atomic read-then-set —
+    // best-effort under low contention.
+    try {
+      final snapshot = await _historyCountRef.get();
+      final current = (snapshot.value as num?)?.toInt() ?? 0;
+      await _historyCountRef.set(current + 1);
+    } catch (_) {}
+  }
+
+  /// Fetch the running total of chronicle entries ever written. Returns null
+  /// if the counter node doesn't exist yet (pre-migration state) so callers
+  /// can decide whether to backfill.
+  Future<int?> fetchHistoryCount() async {
+    try {
+      final snapshot = await _historyCountRef.get();
+      if (!snapshot.exists) return null;
+      final v = snapshot.value;
+      if (v is num) return v.toInt();
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// One-time backfill: count every entry under /history and write the
+  /// result to /historyCount. Heavy — downloads the full chronicle. Only
+  /// intended to run when the counter node is missing.
+  Future<int> backfillHistoryCount() async {
+    int count = 0;
+    try {
+      final snapshot = await _historyRef.get();
+      if (!snapshot.exists) {
+        count = 0;
+      } else {
+        final v = snapshot.value;
+        if (v is Map) {
+          count = v.length;
+        } else if (v is List) {
+          count = v.whereType<Object>().length;
+        }
+      }
+    } catch (_) {
+      return 0;
+    }
+    // Persist the counter as a best-effort cache — write may fail if the
+    // RTDB rules don't allow /historyCount writes yet. Either way, return
+    // the count we just measured so the UI can still show absolute #s.
+    try {
+      await _historyCountRef.set(count);
+    } catch (_) {}
+    return count;
   }
 
   /// Fetch the latest chronicle entries, newest first.
-  Future<List<HistoryEntry>> fetchHistory({int limit = 50}) async {
+  /// Fetch chronicle entries, newest first. Set [before] to a previously
+  /// returned entry's `key` to fetch the page immediately older than that
+  /// entry — used for "load more" pagination in the chronicle screen.
+  Future<List<HistoryEntry>> fetchHistory({
+    int limit = 20,
+    String? before,
+  }) async {
     try {
-      final snapshot =
-          await _historyRef.orderByKey().limitToLast(limit).get();
+      Query query = _historyRef.orderByKey();
+      if (before != null && before.isNotEmpty) {
+        query = query.endBefore(before);
+      }
+      final snapshot = await query.limitToLast(limit).get();
       if (!snapshot.exists) return const [];
       final value = snapshot.value;
       if (value is! Map) return const [];

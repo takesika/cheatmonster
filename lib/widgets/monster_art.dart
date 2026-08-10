@@ -171,6 +171,11 @@ class BattleMonster extends StatelessWidget {
   final String ability;
   final bool alignRight;
 
+  /// When true, the ability text is replaced with a masked placeholder.
+  /// Used for the reigning champion in throne mode — their ability stays
+  /// hidden until the throne actually changes hands.
+  final bool hideAbility;
+
   const BattleMonster({
     super.key,
     this.imageBytes,
@@ -178,6 +183,7 @@ class BattleMonster extends StatelessWidget {
     required this.name,
     required this.ability,
     required this.alignRight,
+    this.hideAbility = false,
   });
 
   @override
@@ -229,7 +235,7 @@ class BattleMonster extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '「$ability」',
+                    hideAbility ? '「? ? ? ? ?」' : '「$ability」',
                     textAlign: alignRight ? TextAlign.right : TextAlign.left,
                     style: const TextStyle(
                       fontFamily: AppFonts.gothic,

@@ -31,12 +31,18 @@ class _ReignInfo {
 }
 
 class _ChronicleScreenState extends State<ChronicleScreen> {
+  static const _pageSize = 20;
+
   final _service = ChampionService();
   final _reports = ReportService();
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = true;
   String? _error;
+  Champion? _currentChampion;
   List<HistoryEntry> _entries = const [];
   Map<String, _ReignInfo> _reigns = const {};
+  int? _totalCount;
 
   @override
   void initState() {
@@ -48,22 +54,33 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _hasMore = true;
     });
     try {
       await _reports.load();
       final results = await Future.wait([
-        _service.fetchHistory(),
+        _service.fetchHistory(limit: _pageSize),
         _service.fetchChampion().catchError((_) => null),
+        _service.fetchHistoryCount().catchError((_) => null),
       ]);
       final raw = results[0] as List<HistoryEntry>;
       final currentChampion = results[1] as Champion?;
+      int? totalCount = results[2] as int?;
+      // Pre-migration or /historyCount write blocked by RTDB rules —
+      // backfill by counting entries. When the write is blocked this
+      // repeats on every load, which is slower but keeps # numbers stable.
+      totalCount ??= await _service
+          .backfillHistoryCount()
+          .catchError((_) => 0);
       final entries =
           raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
-      final reigns = _computeReigns(entries, currentChampion);
       if (!mounted) return;
       setState(() {
+        _currentChampion = currentChampion;
         _entries = entries;
-        _reigns = reigns;
+        _totalCount = totalCount;
+        _reigns = _computeReigns(entries, currentChampion);
+        _hasMore = raw.length >= _pageSize;
         _loading = false;
       });
     } catch (_) {
@@ -72,6 +89,31 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
         _error = '年表の取得に失敗しました';
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _entries.isEmpty) return;
+    setState(() => _loadingMore = true);
+    try {
+      final oldest = _entries.last.key;
+      final raw = await _service.fetchHistory(
+        limit: _pageSize,
+        before: oldest,
+      );
+      final more =
+          raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
+      if (!mounted) return;
+      final combined = [..._entries, ...more];
+      setState(() {
+        _entries = combined;
+        _reigns = _computeReigns(combined, _currentChampion);
+        _hasMore = raw.length >= _pageSize;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
     }
   }
 
@@ -163,19 +205,70 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
     }
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      itemCount: _entries.length,
+      itemCount: _entries.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
+        if (i >= _entries.length) {
+          return _LoadMoreFooter(
+            loading: _loadingMore,
+            onTap: _loadingMore ? null : _loadMore,
+          );
+        }
         final entry = _entries[i];
-        final index = _entries.length - i; // newest = largest number
+        // Prefer the absolute rank from the running counter so pagination
+        // doesn't renumber earlier entries. Fall back to the page-relative
+        // ordinal when the counter is unavailable.
+        final displayIndex =
+            _totalCount != null ? _totalCount! - i : _entries.length - i;
         final reign = _reigns[entry.key] ?? const _ReignInfo();
         return _EntryCard(
           entry: entry,
-          index: index,
+          index: displayIndex,
           reign: reign,
           onReport: entry.key.isEmpty ? null : () => _reportEntry(entry),
         );
       },
+    );
+  }
+}
+
+class _LoadMoreFooter extends StatelessWidget {
+  final bool loading;
+  final VoidCallback? onTap;
+  const _LoadMoreFooter({required this.loading, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: AppColors.yellowDeep,
+                ),
+              )
+            : TextButton(
+                onPressed: onTap,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.ink,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 10),
+                ),
+                child: const Text(
+                  '以前の記録を読み込む',
+                  style: TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+      ),
     );
   }
 }
@@ -330,7 +423,9 @@ class _EntryCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '「${entry.winner.specialAbility}」',
+                          reign.isCurrent
+                              ? '「? ? ? ? ?」'
+                              : '「${entry.winner.specialAbility}」',
                           style: const TextStyle(
                             fontFamily: AppFonts.gothic,
                             fontSize: 18,
@@ -361,12 +456,19 @@ class _EntryCard extends StatelessWidget {
                   const _FirstReignBadge(),
                 const SizedBox(height: 10),
                 Text(
-                  entry.narration,
-                  style: const TextStyle(
+                  reign.isCurrent
+                      ? 'この王座の顛末はまだ記されていない。'
+                      : entry.narration,
+                  style: TextStyle(
                     fontFamily: AppFonts.gothic,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.inkMid,
+                    color: reign.isCurrent
+                        ? AppColors.inkSoft
+                        : AppColors.inkMid,
+                    fontStyle: reign.isCurrent
+                        ? FontStyle.italic
+                        : FontStyle.normal,
                     height: 1.7,
                   ),
                 ),

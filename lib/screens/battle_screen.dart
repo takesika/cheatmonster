@@ -122,6 +122,7 @@ class _BattleScreenState extends State<BattleScreen>
                         name: game.cpuMonster!.name,
                         ability: game.cpuMonster!.specialAbility,
                         alignRight: true,
+                        hideAbility: game.gameMode == GameMode.throne,
                       ),
                     ),
                   ),
@@ -211,19 +212,38 @@ class _BattleScreenState extends State<BattleScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _ResultHeroCard(monster: displayMonster),
-                  const SizedBox(height: 16),
-                  Text(
-                    result.narration,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: AppFonts.gothic,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.inkMid,
-                      height: 1.7,
-                    ),
+                  _ResultHeroCard(
+                    monster: displayMonster,
+                    // In throne mode, the champion's ability stays hidden
+                    // unless the throne actually changes. On lose, the
+                    // displayed monster IS the still-reigning champion.
+                    hideAbility:
+                        game.gameMode == GameMode.throne && !isWin && !isDraw,
                   ),
+                  const SizedBox(height: 16),
+                  Builder(builder: (context) {
+                    // The narration often describes the champion's ability
+                    // by name. Hide it in throne mode unless the throne
+                    // actually changed (i.e., the player won).
+                    final hideNarration =
+                        game.gameMode == GameMode.throne && !isWin;
+                    return Text(
+                      hideNarration
+                          ? '王者は玉座を守り抜いた。その力の正体は闇に伏せられたまま。'
+                          : result.narration,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppFonts.gothic,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.inkMid,
+                        fontStyle: hideNarration
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                        height: 1.7,
+                      ),
+                    );
+                  }),
                   const SizedBox(height: 12),
                   _MatchupSummary(
                     player: game.playerMonster!,
@@ -671,7 +691,8 @@ class _ResultHeader extends StatelessWidget {
 
 class _ResultHeroCard extends StatelessWidget {
   final Monster monster;
-  const _ResultHeroCard({required this.monster});
+  final bool hideAbility;
+  const _ResultHeroCard({required this.monster, this.hideAbility = false});
 
   @override
   Widget build(BuildContext context) {
@@ -714,7 +735,7 @@ class _ResultHeroCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '「${monster.specialAbility}」',
+                    hideAbility ? '「? ? ? ? ?」' : '「${monster.specialAbility}」',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: AppFonts.gothic,
