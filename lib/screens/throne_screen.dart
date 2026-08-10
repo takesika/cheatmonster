@@ -179,8 +179,6 @@ class _ChampionView extends StatelessWidget {
     final champion = game.currentChampion!;
     final canChallenge = game.remainingBattles > 0;
     final displayedName = blocked ? '(通報済のため非表示)' : champion.monster.name;
-    final displayedAbility =
-        blocked ? '───' : '「${champion.monster.specialAbility}」';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -253,25 +251,18 @@ class _ChampionView extends StatelessWidget {
                     children: [
                       Text(
                         displayedName,
-                        style: TextStyle(
-                          fontFamily: AppFonts.gothic,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        displayedAbility,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontFamily: AppFonts.gothic,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
-                          height: 1.25,
+                          height: 1.2,
+                          letterSpacing: 1,
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      const _HiddenAbilityPill(),
                     ],
                   ),
                 ),
@@ -314,6 +305,66 @@ class _ChampionView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The champion's special ability stays hidden until they are dethroned.
+/// Rendered as a gold-outlined pill with a lock indicator and "? ? ?" so
+/// the ability slot is unmistakably concealed on purpose.
+class _HiddenAbilityPill extends StatelessWidget {
+  const _HiddenAbilityPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.dark.withValues(alpha: 0.55),
+        border: Border.all(color: AppColors.yellow, width: 1.2),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.yellow.withValues(alpha: 0.2),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.lock_outline,
+              size: 14, color: AppColors.yellow),
+          const SizedBox(width: 6),
+          const Text(
+            '特殊能力',
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.yellow,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 1,
+            height: 12,
+            color: AppColors.yellow.withValues(alpha: 0.4),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '? ? ?',
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Colors.white.withValues(alpha: 0.95),
+              letterSpacing: 3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

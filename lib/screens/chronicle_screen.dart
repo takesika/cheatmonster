@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import '../models/champion.dart';
 import '../models/history_entry.dart';
 import '../services/champion_service.dart';
 import '../services/report_service.dart';
@@ -15,12 +16,27 @@ class ChronicleScreen extends StatefulWidget {
   State<ChronicleScreen> createState() => _ChronicleScreenState();
 }
 
+/// Info about a single champion's reign, derived from adjacent chronicle
+/// entries + the current champion.
+class _ReignInfo {
+  /// Number of defenses this champion made during their reign. Null when it
+  /// couldn't be determined (no matching next-newer entry AND not the
+  /// current champion).
+  final int? defenseCount;
+
+  /// True if this champion is the one currently sitting on the throne.
+  final bool isCurrent;
+
+  const _ReignInfo({this.defenseCount, this.isCurrent = false});
+}
+
 class _ChronicleScreenState extends State<ChronicleScreen> {
   final _service = ChampionService();
   final _reports = ReportService();
   bool _loading = true;
   String? _error;
   List<HistoryEntry> _entries = const [];
+  Map<String, _ReignInfo> _reigns = const {};
 
   @override
   void initState() {
@@ -35,12 +51,19 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
     });
     try {
       await _reports.load();
-      final raw = await _service.fetchHistory();
+      final results = await Future.wait([
+        _service.fetchHistory(),
+        _service.fetchChampion().catchError((_) => null),
+      ]);
+      final raw = results[0] as List<HistoryEntry>;
+      final currentChampion = results[1] as Champion?;
       final entries =
           raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
+      final reigns = _computeReigns(entries, currentChampion);
       if (!mounted) return;
       setState(() {
         _entries = entries;
+        _reigns = reigns;
         _loading = false;
       });
     } catch (_) {
@@ -50,6 +73,38 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
         _loading = false;
       });
     }
+  }
+
+  /// For each entry, figure out how many times its winner defended their
+  /// throne during their reign. Newer entries carry the defeated champion's
+  /// defense count, so entry `i`'s reign count = the next-newer entry's
+  /// `defeatedDefenseCount` when that entry's defeated matches this entry's
+  /// winner. The newest entry gets its count from the live champion if the
+  /// winner is still sitting on the throne.
+  Map<String, _ReignInfo> _computeReigns(
+      List<HistoryEntry> entries, Champion? current) {
+    final result = <String, _ReignInfo>{};
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      _ReignInfo info = const _ReignInfo();
+      for (int j = i - 1; j >= 0; j--) {
+        final newer = entries[j];
+        if (newer.defeatedName == e.winner.name &&
+            newer.defeatedAbility == e.winner.specialAbility) {
+          info = _ReignInfo(defenseCount: newer.defeatedDefenseCount);
+          break;
+        }
+      }
+      if (i == 0 &&
+          current != null &&
+          current.monster.name == e.winner.name &&
+          current.monster.specialAbility == e.winner.specialAbility) {
+        info = _ReignInfo(
+            defenseCount: current.defenseCount, isCurrent: true);
+      }
+      result[e.key] = info;
+    }
+    return result;
   }
 
   Future<void> _reportEntry(HistoryEntry entry) async {
@@ -113,9 +168,11 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
       itemBuilder: (context, i) {
         final entry = _entries[i];
         final index = _entries.length - i; // newest = largest number
+        final reign = _reigns[entry.key] ?? const _ReignInfo();
         return _EntryCard(
           entry: entry,
           index: index,
+          reign: reign,
           onReport: entry.key.isEmpty ? null : () => _reportEntry(entry),
         );
       },
@@ -166,10 +223,12 @@ class _TopBar extends StatelessWidget {
 class _EntryCard extends StatelessWidget {
   final HistoryEntry entry;
   final int index;
+  final _ReignInfo reign;
   final VoidCallback? onReport;
   const _EntryCard({
     required this.entry,
     required this.index,
+    required this.reign,
     this.onReport,
   });
 
@@ -287,6 +346,7 @@ class _EntryCard extends StatelessWidget {
               ],
             ),
           ),
+          _ReignBanner(reign: reign),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: Column(
@@ -296,7 +356,6 @@ class _EntryCard extends StatelessWidget {
                   _DefeatedRow(
                     name: entry.defeatedName,
                     ability: entry.defeatedAbility,
-                    defenseCount: entry.defeatedDefenseCount,
                   )
                 else
                   const _FirstReignBadge(),
@@ -344,100 +403,131 @@ class _EntryCard extends StatelessWidget {
 class _DefeatedRow extends StatelessWidget {
   final String name;
   final String ability;
-  final int defenseCount;
   const _DefeatedRow({
     required this.name,
     required this.ability,
-    required this.defenseCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                '倒した',
-                style: TextStyle(
-                  fontFamily: AppFonts.gothic,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.red,
-                  letterSpacing: 1,
-                ),
-              ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            color: AppColors.red.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Text(
+            '倒した',
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: AppColors.red,
+              letterSpacing: 1,
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: RichText(
-                text: TextSpan(
-                  style: const TextStyle(
-                    fontFamily: AppFonts.gothic,
-                    fontSize: 13,
-                    color: AppColors.ink,
-                  ),
-                  children: [
-                    TextSpan(
-                      text: name,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const TextSpan(text: '  '),
-                    TextSpan(
-                      text: '「$ability」',
-                      style: const TextStyle(
-                        color: AppColors.inkMid,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 6),
-        Padding(
-          padding: const EdgeInsets.only(left: 44),
-          child: _DefenseBadge(count: defenseCount),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontFamily: AppFonts.gothic,
+                fontSize: 13,
+                color: AppColors.ink,
+              ),
+              children: [
+                TextSpan(
+                  text: name,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const TextSpan(text: '  '),
+                TextSpan(
+                  text: '「$ability」',
+                  style: const TextStyle(
+                    color: AppColors.inkMid,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-class _DefenseBadge extends StatelessWidget {
-  final int count;
-  const _DefenseBadge({required this.count});
+/// Prominent gold band shown right under the winner artwork. Displays how
+/// many defenses this reign racked up before ending (or the running total,
+/// if the champion is still on the throne).
+class _ReignBanner extends StatelessWidget {
+  final _ReignInfo reign;
+  const _ReignBanner({required this.reign});
 
   @override
   Widget build(BuildContext context) {
-    final label = count == 0 ? '防衛 0 (即位直後に陥落)' : '防衛 $count 回';
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.shield_outlined,
-            size: 12, color: AppColors.inkMid),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: AppFonts.gothic,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: AppColors.inkMid,
+    final count = reign.defenseCount;
+    final label = _labelFor(count, reign.isCurrent);
+    final labelColor = reign.isCurrent
+        ? const Color(0xFF1A1400)
+        : AppColors.yellowDeep;
+    final bg = reign.isCurrent
+        ? AppColors.yellow
+        : AppColors.yellowSoft;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(color: bg),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.shield, size: 16, color: labelColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: labelColor,
+              letterSpacing: 2,
+            ),
           ),
-        ),
-      ],
+          if (reign.isCurrent) ...[
+            const SizedBox(width: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1400),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                '現王座',
+                style: TextStyle(
+                  fontFamily: AppFonts.gothic,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.yellow,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  static String _labelFor(int? count, bool isCurrent) {
+    if (count == null) return isCurrent ? '防衛回数 —' : '防衛回数 不明';
+    if (isCurrent) return '防衛 $count 回 継続中';
+    if (count == 0) return '即位直後に陥落';
+    return '在位中 防衛 $count 回';
   }
 }
 
