@@ -1,6 +1,8 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'analytics_service.dart';
+
 /// Handles user-generated content reporting + per-device blocklists.
 ///
 /// A report writes an anonymous entry to `/reports/{pushId}` on RTDB so the
@@ -61,6 +63,7 @@ class ReportService {
     } catch (_) {
       // Local block still stands even if the remote write fails.
     }
+    AnalyticsService.reportSubmitted(type: 'champion');
   }
 
   /// Report a chronicle entry and hide it locally.
@@ -89,5 +92,6 @@ class ReportService {
     } catch (_) {
       // Local block still stands even if the remote write fails.
     }
+    AnalyticsService.reportSubmitted(type: 'history');
   }
 }

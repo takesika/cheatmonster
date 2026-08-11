@@ -30,6 +30,64 @@ class _ReignInfo {
   const _ReignInfo({this.defenseCount, this.isCurrent = false});
 }
 
+/// A named span of chronicle time, delimited by a start timestamp. Every
+/// entry falls in the era with the largest [startMillis] that is <= the
+/// entry's `crownedAt`. Ordered newest → oldest below.
+class _Era {
+  final String name;
+  final String tagline;
+  final int startMillis;
+  const _Era({
+    required this.name,
+    required this.tagline,
+    required this.startMillis,
+  });
+}
+
+/// Roughly when 1.4.1 (champion ability hidden) went live: 2026-08-11 00:00
+/// JST = 2026-08-10 15:00 UTC. Slightly fuzzy is fine — the era banner is
+/// narrative color, not a hard invariant.
+final _eras = <_Era>[
+  _Era(
+    name: '能力秘匿期',
+    tagline: '王座の能力は秘匿され、挑戦者は霧の中で剣を振るう',
+    startMillis: DateTime.utc(2026, 8, 10, 15).millisecondsSinceEpoch,
+  ),
+  const _Era(
+    name: '黎明期',
+    tagline: '能力が晒され、力と読み合いだけで玉座を奪い合った時代',
+    startMillis: 0,
+  ),
+];
+
+_Era _eraFor(int crownedAt) {
+  for (final e in _eras) {
+    if (crownedAt >= e.startMillis) return e;
+  }
+  return _eras.last;
+}
+
+/// Mixed list item — either a chronicle entry or an era divider.
+sealed class _ChronicleItem {}
+
+class _EraItem extends _ChronicleItem {
+  final _Era era;
+  _EraItem(this.era);
+}
+
+class _EntryItem extends _ChronicleItem {
+  final HistoryEntry entry;
+  final int displayIndex;
+  final _ReignInfo reign;
+  final VoidCallback? onReport;
+  _EntryItem({
+    required this.entry,
+    required this.displayIndex,
+    required this.reign,
+    this.onReport,
+  });
+}
+
 class _ChronicleScreenState extends State<ChronicleScreen> {
   static const _pageSize = 20;
 
@@ -222,31 +280,110 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
     if (_entries.isEmpty) {
       return const _EmptyView();
     }
+    final items = _buildItems();
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      itemCount: _entries.length + (_hasMore ? 1 : 0),
+      itemCount: items.length + (_hasMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, i) {
-        if (i >= _entries.length) {
+        if (i >= items.length) {
           return _LoadMoreFooter(
             loading: _loadingMore,
             onTap: _loadingMore ? null : _loadMore,
           );
         }
-        final entry = _entries[i];
-        // Prefer the absolute rank from the running counter so pagination
-        // doesn't renumber earlier entries. Fall back to the page-relative
-        // ordinal when the counter is unavailable.
-        final displayIndex =
-            _totalCount != null ? _totalCount! - i : _entries.length - i;
-        final reign = _reigns[entry.key] ?? const _ReignInfo();
+        final it = items[i];
+        if (it is _EraItem) return _EraBanner(era: it.era);
+        final e = it as _EntryItem;
         return _EntryCard(
-          entry: entry,
-          index: displayIndex,
-          reign: reign,
-          onReport: entry.key.isEmpty ? null : () => _reportEntry(entry),
+          entry: e.entry,
+          index: e.displayIndex,
+          reign: e.reign,
+          onReport: e.onReport,
         );
       },
+    );
+  }
+
+  /// Weave era dividers between entries. A divider appears above every
+  /// entry whose era differs from the entry immediately newer than it, as
+  /// well as at the very top of the list.
+  List<_ChronicleItem> _buildItems() {
+    final out = <_ChronicleItem>[];
+    _Era? prev;
+    for (int i = 0; i < _entries.length; i++) {
+      final entry = _entries[i];
+      final era = _eraFor(entry.crownedAt);
+      if (prev == null || prev.name != era.name) {
+        out.add(_EraItem(era));
+      }
+      prev = era;
+      final displayIndex =
+          _totalCount != null ? _totalCount! - i : _entries.length - i;
+      out.add(_EntryItem(
+        entry: entry,
+        displayIndex: displayIndex,
+        reign: _reigns[entry.key] ?? const _ReignInfo(),
+        onReport: entry.key.isEmpty ? null : () => _reportEntry(entry),
+      ));
+    }
+    return out;
+  }
+}
+
+class _EraBanner extends StatelessWidget {
+  final _Era era;
+  const _EraBanner({required this.era});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: Divider(color: AppColors.yellowDeep, thickness: 1)),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.dark,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.yellow, width: 1),
+                ),
+                child: Text(
+                  era.name,
+                  style: const TextStyle(
+                    fontFamily: AppFonts.gothic,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.yellow,
+                    letterSpacing: 4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(child: Divider(color: AppColors.yellowDeep, thickness: 1)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            era.tagline,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: AppFonts.gothic,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.inkMid,
+              height: 1.5,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

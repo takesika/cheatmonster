@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomCode": {
+        ".read": "$roomCode.matches(/^[A-Z0-9]{6}$/)",
+        ".write": "$roomCode.matches(/^[A-Z0-9]{6}$/) && (!data.exists() || !data.child('createdAt').exists() || data.child('createdAt').val() > now - 86400000)"
+      }
+    },
+    "champion": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.hasChildren(['name', 'atk', 'def', 'specialAbility', 'updatedAt'])"
+    },
+    "history": {
+      ".read": true,
+      ".write": true
+    },
+    "historyCount": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.isNumber()"
+    },
+    "reports": {
+      ".read": false,
+      ".write": true
+    },
+    "config": {
+      ".read": true,
+      ".write": false
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}

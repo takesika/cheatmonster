@@ -7,6 +7,7 @@ import '../models/champion.dart';
 import '../models/game_mode.dart';
 import '../models/history_entry.dart';
 import '../models/monster.dart';
+import '../services/analytics_service.dart';
 import '../services/battle_limit_service.dart';
 import '../services/champion_service.dart';
 import '../services/cpu_opponent_service.dart';
@@ -90,6 +91,7 @@ class GameProvider extends ChangeNotifier {
       def: def,
       specialAbility: specialAbility,
     );
+    AnalyticsService.monsterSummoned(mode: gameMode.name);
 
     if (gameMode == GameMode.online) {
       await createPlayerMonsterOnline(name, specialAbility);
@@ -237,6 +239,10 @@ class GameProvider extends ChangeNotifier {
       isWaitingForOpponent = false;
       notifyListeners();
     }
+    AnalyticsService.battleFinished(
+      mode: 'online',
+      outcome: battleResult?.outcome.name ?? 'unknown',
+    );
   }
 
   Future<void> _generatePlayerImage(String name, String specialAbility) async {
@@ -355,6 +361,10 @@ class GameProvider extends ChangeNotifier {
       isBattling = false;
       notifyListeners();
     }
+    AnalyticsService.battleFinished(
+      mode: 'cpu',
+      outcome: battleResult?.outcome.name ?? 'unknown',
+    );
   }
 
   // ── Throne mode ──
@@ -531,6 +541,7 @@ class GameProvider extends ChangeNotifier {
       final result = crownOutcome.result;
       if (result == CrownResult.crowned) {
         throneCrowned = true;
+        AnalyticsService.crownWon();
         // Reflect the new champion locally so any UI that reads
         // currentChampion after the battle sees the winner immediately.
         currentChampion = Champion(
@@ -571,6 +582,10 @@ class GameProvider extends ChangeNotifier {
 
     isBattling = false;
     notifyListeners();
+    AnalyticsService.battleFinished(
+      mode: 'throne',
+      outcome: battleResult?.outcome.name ?? 'unknown',
+    );
   }
 
   void resetThroneFlags() {
