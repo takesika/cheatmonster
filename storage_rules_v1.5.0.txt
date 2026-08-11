@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // アバター画像 (アプリからアップされる)
+    // - 誰でも読める (アプリで表示するため)
+    // - 書き込みは 5MB 以下の PNG のみ
+    match /champion/{filename} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+    }
+    match /history/{filename} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+    }
+    match /rooms/{filename=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+    }
+    // その他は全部 deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

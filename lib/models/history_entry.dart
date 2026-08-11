@@ -50,7 +50,11 @@ class HistoryEntry {
       'narration': narration,
       'crownedAt': crownedAt,
     };
-    if (winner.imageBytes != null) {
+    // Prefer a Storage URL over embedding base64 in RTDB — the latter
+    // bloats every chronicle read by hundreds of KB per entry.
+    if (winner.imageUrl != null && winner.imageUrl!.isNotEmpty) {
+      data['imageUrl'] = winner.imageUrl;
+    } else if (winner.imageBytes != null) {
       data['imageBase64'] = base64Encode(winner.imageBytes!);
     }
     return data;
@@ -59,13 +63,17 @@ class HistoryEntry {
   static HistoryEntry? fromRaw(Object? raw) {
     if (raw == null || raw is! Map) return null;
     final map = Map<String, dynamic>.from(raw);
+    final imageUrl = map['imageUrl'] as String?;
     Uint8List? bytes;
-    final imageBase64 = map['imageBase64'];
-    if (imageBase64 is String && imageBase64.isNotEmpty) {
-      try {
-        bytes = base64Decode(imageBase64);
-      } catch (_) {
-        bytes = null;
+    if (imageUrl == null || imageUrl.isEmpty) {
+      // Legacy fallback for entries written before we moved to Storage.
+      final imageBase64 = map['imageBase64'];
+      if (imageBase64 is String && imageBase64.isNotEmpty) {
+        try {
+          bytes = base64Decode(imageBase64);
+        } catch (_) {
+          bytes = null;
+        }
       }
     }
     return HistoryEntry(
@@ -75,6 +83,7 @@ class HistoryEntry {
         def: (map['def'] as num?)?.toInt() ?? 0,
         specialAbility: map['specialAbility'] as String? ?? '',
         imageBytes: bytes,
+        imageUrl: imageUrl,
       ),
       defeatedName: map['defeatedName'] as String? ?? '',
       defeatedAbility: map['defeatedAbility'] as String? ?? '',

@@ -5,7 +5,14 @@ class Monster {
   final int atk;
   final int def;
   final String specialAbility;
+
+  /// Raw image bytes — populated when we just generated the image locally.
   final Uint8List? imageBytes;
+
+  /// Firebase Storage download URL — populated when the monster comes from
+  /// RTDB with an image already uploaded to Storage. Widgets prefer bytes
+  /// when both are set; URL avoids the base64 round-trip through RTDB.
+  final String? imageUrl;
 
   Monster({
     required this.name,
@@ -13,14 +20,16 @@ class Monster {
     required this.def,
     required this.specialAbility,
     this.imageBytes,
+    this.imageUrl,
   });
 
-  Monster copyWith({Uint8List? imageBytes}) => Monster(
+  Monster copyWith({Uint8List? imageBytes, String? imageUrl}) => Monster(
         name: name,
         atk: atk,
         def: def,
         specialAbility: specialAbility,
         imageBytes: imageBytes ?? this.imageBytes,
+        imageUrl: imageUrl ?? this.imageUrl,
       );
 
   Map<String, dynamic> toJson() => {

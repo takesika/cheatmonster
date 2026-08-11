@@ -203,6 +203,7 @@ class _ChampionView extends StatelessWidget {
                       )
                     : MonsterArt(
                         imageBytes: champion.monster.imageBytes,
+                        imageUrl: champion.monster.imageUrl,
                         radius: 20,
                       ),
               ),

@@ -74,6 +74,14 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
           .catchError((_) => 0);
       final entries =
           raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
+      // Drift check on page 1: if we already fetched more entries than the
+      // counter claims, older app versions have been crowning without
+      // incrementing. Re-count to correct.
+      if (entries.length > totalCount) {
+        totalCount = await _service
+            .backfillHistoryCount()
+            .catchError((_) => totalCount ?? 0);
+      }
       if (!mounted) return;
       setState(() {
         _currentChampion = currentChampion;
@@ -105,8 +113,19 @@ class _ChronicleScreenState extends State<ChronicleScreen> {
           raw.where((e) => !_reports.isHistoryBlocked(e.key)).toList();
       if (!mounted) return;
       final combined = [..._entries, ...more];
+      // Drift detection: if we've loaded more entries than /historyCount
+      // claims, the counter is stale (older app versions crowning without
+      // incrementing). Re-backfill to correct — costs one full fetch, but
+      // avoids negative chapter numbers.
+      int? correctedCount = _totalCount;
+      if (correctedCount != null && combined.length > correctedCount) {
+        correctedCount = await _service
+            .backfillHistoryCount()
+            .catchError((_) => correctedCount ?? 0);
+      }
       setState(() {
         _entries = combined;
+        _totalCount = correctedCount;
         _reigns = _computeReigns(combined, _currentChampion);
         _hasMore = raw.length >= _pageSize;
         _loadingMore = false;
@@ -350,6 +369,7 @@ class _EntryCard extends StatelessWidget {
                 Positioned.fill(
                   child: MonsterArt(
                     imageBytes: entry.winner.imageBytes,
+                    imageUrl: entry.winner.imageUrl,
                     radius: 0,
                   ),
                 ),

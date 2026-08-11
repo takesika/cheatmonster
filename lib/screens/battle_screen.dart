@@ -118,6 +118,7 @@ class _BattleScreenState extends State<BattleScreen>
                       opacity: _enemyFade,
                       child: BattleMonster(
                         imageBytes: game.cpuMonster!.imageBytes,
+                        imageUrl: game.cpuMonster!.imageUrl,
                         loading: game.isGeneratingCpuImage,
                         name: game.cpuMonster!.name,
                         ability: game.cpuMonster!.specialAbility,
@@ -129,6 +130,7 @@ class _BattleScreenState extends State<BattleScreen>
                   Expanded(
                     child: BattleMonster(
                       imageBytes: game.playerMonster!.imageBytes,
+                      imageUrl: game.playerMonster!.imageUrl,
                       name: game.playerMonster!.name,
                       ability: game.playerMonster!.specialAbility,
                       alignRight: false,
@@ -701,7 +703,11 @@ class _ResultHeroCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: MonsterArt(imageBytes: monster.imageBytes, radius: 20),
+            child: MonsterArt(
+              imageBytes: monster.imageBytes,
+              imageUrl: monster.imageUrl,
+              radius: 20,
+            ),
           ),
           Positioned(
             left: 0,

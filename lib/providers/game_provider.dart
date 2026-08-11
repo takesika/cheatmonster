@@ -401,15 +401,17 @@ class GameProvider extends ChangeNotifier {
       return;
     }
 
-    // The fetched champion already carries its image (stored as base64 in
-    // RTDB), so just commit it. Only fall back to a local generation if the
-    // server data happens to have no image at all — legacy champions
-    // written before we started persisting the image.
+    // The fetched champion already carries its image either as bytes
+    // (legacy base64-in-RTDB) or as a Storage URL (new). Commit as-is.
+    // Only fall back to a local generation if neither is present — legacy
+    // champions written before we started persisting the image.
     currentChampion = fetched;
     isLoadingChampion = false;
     notifyListeners();
 
     if (fetched.monster.imageBytes != null) return;
+    if (fetched.monster.imageUrl != null &&
+        fetched.monster.imageUrl!.isNotEmpty) return;
 
     try {
       final bytes = await _imageService.generateMonsterImage(

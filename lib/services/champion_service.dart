@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/champion.dart';
 import '../models/history_entry.dart';
@@ -25,6 +27,23 @@ class ChampionService {
       FirebaseDatabase.instance.ref().child('history');
   final DatabaseReference _historyCountRef =
       FirebaseDatabase.instance.ref().child('historyCount');
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  /// Upload monster artwork to Firebase Storage under [path] and return its
+  /// download URL. Returns null on any failure so callers can fall back to
+  /// the base64-in-RTDB path if needed.
+  Future<String?> _uploadImage(String path, Uint8List bytes) async {
+    try {
+      final ref = _storage.ref(path);
+      await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/png'),
+      );
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Fetch the current champion. Returns null if no champion exists yet.
   Future<Champion?> fetchChampion() async {
@@ -65,16 +84,27 @@ class ChampionService {
         );
       }
 
+      final crownedAt = DateTime.now().millisecondsSinceEpoch;
       final data = <String, Object>{
         'name': challenger.name,
         'atk': challenger.atk,
         'def': challenger.def,
         'specialAbility': challenger.specialAbility,
-        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'updatedAt': crownedAt,
         'defenseCount': 0,
       };
+      // Upload artwork to Storage and reference by URL. Falls back to
+      // legacy base64-in-RTDB only if the upload fails.
       if (challenger.imageBytes != null) {
-        data['imageBase64'] = base64Encode(challenger.imageBytes!);
+        final url = await _uploadImage(
+          'champion/$crownedAt.png',
+          challenger.imageBytes!,
+        );
+        if (url != null) {
+          data['imageUrl'] = url;
+        } else {
+          data['imageBase64'] = base64Encode(challenger.imageBytes!);
+        }
       }
       await _ref.set(data);
       return (
@@ -107,7 +137,30 @@ class ChampionService {
   /// Append a new entry to the chronicle. Called after each successful crown.
   Future<void> recordCrown(HistoryEntry entry) async {
     try {
-      await _historyRef.push().set(entry.toJson());
+      final ref = _historyRef.push();
+      final key = ref.key;
+      // Upload winner artwork to Storage keyed by the push id, so each
+      // chronicle entry can reference the image by URL instead of a
+      // ~500KB base64 blob embedded in RTDB.
+      HistoryEntry toWrite = entry;
+      if (entry.winner.imageBytes != null && key != null) {
+        final url = await _uploadImage(
+          'history/$key.png',
+          entry.winner.imageBytes!,
+        );
+        if (url != null) {
+          toWrite = HistoryEntry(
+            winner: entry.winner.copyWith(imageUrl: url),
+            defeatedName: entry.defeatedName,
+            defeatedAbility: entry.defeatedAbility,
+            defeatedDefenseCount: entry.defeatedDefenseCount,
+            narration: entry.narration,
+            crownedAt: entry.crownedAt,
+            key: entry.key,
+          );
+        }
+      }
+      await ref.set(toWrite.toJson());
     } catch (_) {
       // Chronicle write is best-effort; a missing entry doesn't break the game.
     }

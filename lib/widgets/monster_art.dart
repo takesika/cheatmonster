@@ -6,18 +6,54 @@ import '../config/theme.dart';
 
 class MonsterArt extends StatelessWidget {
   final Uint8List? imageBytes;
+  final String? imageUrl;
   final double radius;
   final bool loading;
 
   const MonsterArt({
     super.key,
     this.imageBytes,
+    this.imageUrl,
     this.radius = 18,
     this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // In-memory bytes win (fresh generation / round-trip decoded).
+    // Otherwise stream from Firebase Storage URL — Flutter caches network
+    // images by URL so scrolling the chronicle stays smooth.
+    Widget? child;
+    if (imageBytes != null) {
+      child = Image.memory(imageBytes!, fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      child = Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, w, progress) {
+          if (progress == null) return w;
+          return Center(
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: progress.expectedTotalBytes == null
+                    ? null
+                    : progress.cumulativeBytesLoaded /
+                        progress.expectedTotalBytes!,
+                valueColor: const AlwaysStoppedAnimation(AppColors.yellow),
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(Icons.broken_image_outlined,
+              size: 48, color: Colors.white38),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Container(
@@ -30,22 +66,21 @@ class MonsterArt extends StatelessWidget {
             colors: [Color(0xFF3A2E5E), Color(0xFF1A1428)],
           ),
         ),
-        child: imageBytes != null
-            ? Image.memory(imageBytes!, fit: BoxFit.cover)
-            : Center(
-                child: loading
-                    ? const SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation(AppColors.yellow),
-                        ),
-                      )
-                    : const Icon(Icons.image_outlined,
-                        size: 48, color: Colors.white38),
-              ),
+        child: child ??
+            Center(
+              child: loading
+                  ? const SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation(AppColors.yellow),
+                      ),
+                    )
+                  : const Icon(Icons.image_outlined,
+                      size: 48, color: Colors.white38),
+            ),
       ),
     );
   }
@@ -166,6 +201,7 @@ class AbilityLine extends StatelessWidget {
 
 class BattleMonster extends StatelessWidget {
   final Uint8List? imageBytes;
+  final String? imageUrl;
   final bool loading;
   final String name;
   final String ability;
@@ -179,6 +215,7 @@ class BattleMonster extends StatelessWidget {
   const BattleMonster({
     super.key,
     this.imageBytes,
+    this.imageUrl,
     this.loading = false,
     required this.name,
     required this.ability,
@@ -193,6 +230,7 @@ class BattleMonster extends StatelessWidget {
         Positioned.fill(
           child: MonsterArt(
             imageBytes: imageBytes,
+            imageUrl: imageUrl,
             loading: loading,
             radius: 0,
           ),
